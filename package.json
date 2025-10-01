@@ -1,0 +1,28 @@
+{
+  "name": "elearning-camp-backend",
+  "version": "1.0.0",
+  "description": "API for eLearning website",
+  "keywords": [
+    "nodejs"
+  ],
+  "homepage": "https://github.com/alef-garrido/elearning-camp-backend#readme",
+  "bugs": {
+    "url": "https://github.com/alef-garrido/elearning-camp-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alef-garrido/elearning-camp-backend.git"
+  },
+  "license": "MIT",
+  "author": "Alef Lemat",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "NODE_ENV=production node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  }
+}
