@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const slugify = require('slugify');
 
 const CommunitySchema = new mongoose.Schema({
     name: {
@@ -103,5 +104,12 @@ const CommunitySchema = new mongoose.Schema({
         default: Date.now
     }
 });
+
+// Create community slug from the name
+CommunitySchema.pre('save', function(next) {
+    this.slug = slugify(this.name, { lower: true });
+    next();
+});
+
 
 module.exports = mongoose.model('Community', CommunitySchema);
