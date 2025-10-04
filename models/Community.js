@@ -13,7 +13,7 @@ const CommunitySchema = new mongoose.Schema({
     slug: String,
     description: {
         type: String,
-        required: [true, 'A community must have a name'],
+        required: [true, 'A community must have a description'],
         maxlength: [500, 'Description must have less or equal than 500 characters']
     },
     website: {
@@ -115,6 +115,11 @@ CommunitySchema.pre('save', function(next) {
 
 // Geocode & create location field
 CommunitySchema.pre('save', async function(next) {
+    // Only run if address is provided and has been modified
+    if (!this.isModified('address') || !this.address) {
+        return next();
+    }
+
     const loc = await geocoder.geocode(this.address);
     if(loc && loc.length > 0) {
         this.location = {

@@ -8,10 +8,45 @@ const Community = require('../models/Community');
 // @route     GET /api/v1/communities
 // @access    Public
 exports.getCommunities = asyncHandler(async (req, res, next) => {
+    let query;
 
-    const communities = await Community.find();
-    res.status(200).json({ success: true, count: communities.length ,data: communities });
-  
+    // Copy req.query to not pollute the original
+    const reqQuery = { ...req.query };
+
+    // Fields to exclude from filtering (like select, sort, etc.)
+    const removeFields = ['select', 'sort', 'page', 'limit'];
+
+    // Loop over removeFields and delete them from reqQuery
+    removeFields.forEach(param => delete reqQuery[param]);
+
+    // Create query string
+    let queryStr = JSON.stringify(reqQuery);
+
+    // Create operators ($gt, $gte, etc) by adding a '$' prefix
+    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
+
+    // Finding resource using the built query
+    query = Community.find(JSON.parse(queryStr));
+
+    // Select Fields
+    if (req.query.select) {
+        const fields = req.query.select.split(',').join(' ');
+        query = query.select(fields);
+    }
+    
+    // Sorting
+    if (req.query.sort) {
+        const sortBy = req.query.sort.split(',').join(' ');
+        query = query.sort(sortBy);
+    } else {
+        query = query.sort('-createdAt');
+    }
+
+    
+
+    //Execute query
+    const communities = await query;
+    res.status(200).json({ success: true, count: communities.length, data: communities });
 });
 
 
@@ -87,6 +122,10 @@ exports.getCommunitiesInRadius = asyncHandler(async (req, res, next) => {
 
     // Get lat/lng from geocoder
     const loc = await geocoder.geocode(zipcode);
+    if (!loc || loc.length === 0) {
+      return next(new ErrorResponse(`Could not find location for zipcode ${zipcode}`, 400));
+    }
+
     const lat = loc[0].latitude;
     const lng = loc[0].longitude;
 
