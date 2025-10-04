@@ -4,11 +4,17 @@ const {
     getCommunity, 
     createCommunity, 
     updateCommunity, 
-    deleteCommunity 
+    deleteCommunity,
+    getCommunitiesInRadius 
 } = require('../controllers/communities');
 
 
 const router = express.Router();
+
+router
+    .route('/radius/:zipcode/:distance')
+    .get(getCommunitiesInRadius);
+
 
 router
     .route('/')
