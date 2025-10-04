@@ -7,7 +7,7 @@
 		"website": "https://devworks.com",
 		"phone": "(111) 111-1111",
 		"email": "enroll@devworks.com",
-		"address": null,
+		"address": "Montes Urales 424, Lomas de Chapultepec, 11000 Ciudad de México, CDMX",
 		"topics": [
 			"Web Development",
 			"Career Growth"
@@ -17,7 +17,7 @@
 		"isPaid": true
 	},
 	{
-		"_id": "5d713995b721c3bb38c1f5d0",
+		"_id": "5d713a66ec8f2b88b8f830b8",
 		"user": "5d7a514b5d2c12c7449be045",
 		"name": "LaunchCode Guild",
 		"description": "An invite-only online community for mid-level developers preparing for senior roles. Includes bi-weekly code deep dives, resume workshops, mock interviews, and direct access to engineering managers at top tech companies.",
@@ -32,11 +32,11 @@
 			"Leadership"
 		],
 		"hasMentorship": true,
-		"hasLiveEvents": true,
+		"hasLiveEvents": false,
 		"isPaid": true
 	},
 	{
-		"_id": "5d713995b721c3bb38c1f5d0",
+		"_id": "5d725a037b292f5f8ceff787",
 		"user": "5d7a514b5d2c12c7449be045",
 		"name": "First Commit",
 		"description": "A welcoming, zero-cost community for total beginners learning to code. Daily check-ins, friendly project feedback, and guided JavaScript/HTML/CSS challenges—no experience needed. Built on kindness, not competition.",
@@ -55,7 +55,7 @@
 		"isPaid": false
 	},
 	{
-		"_id": "5d713995b721c3bb38c1f5d0",
+		"_id": "5d725a1b7b292f5f8ceff788",
 		"user": "5d7a514b5d2c12c7449be045",
 		"name": "Pixel & Code",
 		"description": "Where designers learn to code and developers discover design. A vibrant online space for building interactive portfolios, creative coding projects (p5.js, Three.js), and collaborative art-tech experiments.",
@@ -70,7 +70,7 @@
 			"Portfolio Building"
 		],
 		"hasMentorship": false,
-		"hasLiveEvents": true,
+		"hasLiveEvents": false,
 		"isPaid": true
 	}
 ]
