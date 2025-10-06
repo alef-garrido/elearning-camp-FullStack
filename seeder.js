@@ -7,19 +7,24 @@ dotenv.config({ path: './config/config.env' });
 
 // Load models
 const Community = require('./models/Community');
+const Course = require('./models/Course');
 
 // Connect to DB
 mongoose.connect(process.env.MONGO_URI);
 
 // Read JSON files
-const bootcamps = JSON.parse(
+const communities = JSON.parse(
   fs.readFileSync(`${__dirname}/_data/communities.json`, 'utf-8')
+);
+const courses = JSON.parse(
+  fs.readFileSync(`${__dirname}/_data/courses.json`, 'utf-8')
 );
 
 // Import into DB
 const importData = async () => {
   try {
-    await Community.create(bootcamps);
+    await Community.create(communities);
+    await Course.create(courses);
     console.log('Data Imported...');
     process.exit();
   } catch (err) {
@@ -31,6 +36,7 @@ const importData = async () => {
 const deleteData = async () => {
   try {
     await Community.deleteMany();
+    await Course.deleteMany();
     console.log('Data Destroyed...');
     process.exit();
   } catch (err) {

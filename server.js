@@ -13,6 +13,7 @@ connectDB();
 
 // Route files
 const communities = require('./routes/communities');
+const courses = require('./routes/courses');
 
 const app = express();
 
@@ -26,6 +27,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Mount routers
 app.use('/api/v1/communities', communities);
+app.use('/api/v1/courses', courses);
 
 // Error handler middleware
 app.use(errorHandler);
