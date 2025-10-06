@@ -1,6 +1,6 @@
-const monoose = require('mongoose');
+const mongoose = require('mongoose');
 
-const CourseSchema = new monoose.Schema({
+const CourseSchema = new mongoose.Schema({
     title: {
         type: String,
         trim: true,
@@ -33,10 +33,10 @@ const CourseSchema = new monoose.Schema({
     },
     // relationship between course and community
     community: {
-        type: monoose.Schema.ObjectId,
+        type: mongoose.Schema.ObjectId,
         ref: 'Community',
         required: true
     }
 });
 
-module.exports = monoose.model('Course', CourseSchema); 
+module.exports = mongoose.model('Course', CourseSchema); 

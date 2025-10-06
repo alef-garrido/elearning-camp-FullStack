@@ -104,6 +104,9 @@ const CommunitySchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
+},{
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
 // Create community slug from the name
@@ -137,6 +140,21 @@ CommunitySchema.pre('save', async function(next) {
         this.address = undefined;
     }
     next();
+});
+
+// Cascade delete courses when a community is deleted
+CommunitySchema.pre('deleteOne', { document: true, query: false }, async function(next) {
+    console.log(`Courses being removed from community ${this._id}`);
+    await this.model('Course').deleteMany({ community: this._id });
+    next();
+});
+
+// Reverse populate with virtuals
+CommunitySchema.virtual('courses', {
+    ref: 'Course',
+    localField: '_id',
+    foreignField: 'community',
+    justOne: false
 });
 
 

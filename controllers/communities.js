@@ -51,6 +51,9 @@ exports.getCommunities = asyncHandler(async (req, res, next) => {
 
     query = query.skip(startIndex).limit(limit);
 
+    // Populate with courses
+    query = query.populate('courses');
+
     //Execute query
     const communities = await query;
 
@@ -131,11 +134,14 @@ exports.updateCommunity = asyncHandler(async (req, res, next) => {
 // @access    Private
 exports.deleteCommunity = asyncHandler(async (req, res, next) => {
 
-    const community = await Community.findByIdAndDelete(req.params.id);
+    const community = await Community.findById(req.params.id);
 
     if (!community) {
       return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
     }
+
+    await community.deleteOne();
+    
     res.status(200).json({ success: true, data: {} });
  
 })
