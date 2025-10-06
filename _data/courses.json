@@ -7,9 +7,9 @@
 		"weeks": 8,
 		"minimumSkill": "beginner",
 		"scholarhipsAvailable": true,
+		"membership": 0,
 		"community": "5d725a037b292f5f8ceff787",
-		"user": "5d7a514b5d2c12c7449be045",
-		"membership": 0
+		"user": "5d7a514b5d2c12c7449be045"
 	},
 	{
 		"_id": "5d725c84c4ded7bcb480eaa0",
@@ -62,9 +62,9 @@
 		"weeks": 10,
 		"minimumSkill": "intermediate",
 		"scholarhipsAvailable": false,
+		"membership": 125,
 		"community": "5d713a66ec8f2b88b8f830b8",
-		"user": "5c8a1d5b0190b214360dc031",
-		"membership": 125
+		"user": "5c8a1d5b0190b214360dc031"
 	},
 	{
 		"_id": "5d725cfec4ded7bcb480eaa5",
