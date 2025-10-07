@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const fileupload = require('express-fileupload');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
-
+const auth = require('./routes/auth');
 
 // Load env vars
 dotenv.config({ path: './config/config.env' });
@@ -36,6 +36,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // Mount routers
 app.use('/api/v1/communities', communities);
 app.use('/api/v1/courses', courses);
+app.use('/api/v1/auth', auth);
 
 // Error handler middleware
 app.use(errorHandler);
