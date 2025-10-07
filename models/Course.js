@@ -39,4 +39,40 @@ const CourseSchema = new mongoose.Schema({
     }
 });
 
+CourseSchema.statics.getAverageCost = async function(communityId) {
+    const obj = await this.aggregate([
+        {
+            $match: { community: communityId }
+        },
+        {
+            $group: {
+                _id: '$community',
+                averageCost: { $avg: '$membership' }
+            }
+        }
+    ]);
+    try {
+        // In case a community is deleted which has courses
+        const averageCost = obj[0] ? Math.ceil(obj[0].averageCost / 10) * 10 : undefined;
+
+        await this.model('Community').findByIdAndUpdate(communityId, {
+            averageCost: averageCost
+        }, {
+            new: true // Optional: returns the modified document
+        }); 
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+//  Get average cost of courses after save
+CourseSchema.post('save', async function() {
+    await this.constructor.getAverageCost(this.community);
+});
+
+// Get average cost of courses after remove
+CourseSchema.post('deleteOne', { document: true, query: false }, async function() {
+    await this.constructor.getAverageCost(this.community);
+});
+
 module.exports = mongoose.model('Course', CourseSchema); 
