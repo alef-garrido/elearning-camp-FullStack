@@ -8,6 +8,8 @@ const {
     getCommunitiesInRadius,
     communityPhotoUpload 
 } = require('../controllers/communities');
+const advancedResults = require('../middleware/advancedResults');
+const Community = require('../models/Community');
 // Include other resource routers
 const courseRouter = require('./courses');
 
@@ -28,7 +30,7 @@ router
 
 router
     .route('/')
-    .get(getCommunities)
+    .get(advancedResults(Community, 'courses'), getCommunities)
     .post(createCommunity);
 
 router

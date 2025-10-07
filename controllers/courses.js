@@ -8,23 +8,19 @@ const  Community = require('../models/Community');
 // @route   GET /api/v1/communities/:communityId/courses
 // @access  Public
 exports.getCourses = asyncHandler(async (req, res, next) => {
-    let query;
+   
     if(req.params.communityId) {
-        query = Course.find({ community: req.params.communityId });
-    } else {
-        query = Course.find().populate({
-            path: 'community',
-            select: 'name description'
-        });
-    }
-    
-    const courses = await query;
+        const courses = await Course.find({ community: req.params.communityId });
 
-    res.status(200).json({
-        success: true,
-        count: courses.length,
-        data: courses
-    });
+        return res.status(200).json({
+            success: true,
+            count: courses.length,
+            data: courses
+        });
+
+    } else {
+        res.status(200).json(res.advancedResults);
+    }
 
 });
 
