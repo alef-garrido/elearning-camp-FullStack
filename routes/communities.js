@@ -16,12 +16,14 @@ const courseRouter = require('./courses');
 
 const router = express.Router();
 
+const { protect }  = require('../middleware/auth');
+
 // Re-route into other resource routers
 router.use('/:communityId/courses', courseRouter);
 
 router
     .route('/:id/photo')
-    .put(communityPhotoUpload);
+    .put(protect, communityPhotoUpload);
 
 router
     .route('/radius/:zipcode/:distance')
@@ -31,12 +33,12 @@ router
 router
     .route('/')
     .get(advancedResults(Community, 'courses'), getCommunities)
-    .post(createCommunity);
+    .post(protect, createCommunity);
 
 router
     .route('/:id')
     .get(getCommunity)
-    .put(updateCommunity)
-    .delete(deleteCommunity);
+    .put(protect, updateCommunity)
+    .delete(protect, deleteCommunity);
 
 module.exports = router;
