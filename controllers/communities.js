@@ -32,11 +32,20 @@ exports.getCommunity = asyncHandler(async (req, res, next) => {
 
 })
 
-
 // @desc      Create new community
 // @route     POST /api/v1/communities
 // @access    Private
 exports.createCommunity = asyncHandler(async (req, res, next) => {
+    // Add user to req.body
+    req.body.user = req.user.id;
+
+    // Check for published community
+    const publishedCommunity = await Community.findOne({ user: req.user.id });
+
+    // If the user is not an admin, they can only add one community
+    if (publishedCommunity && req.user.role !== 'admin') {
+      return next(new ErrorResponse(`The user with ID ${req.user.id} has already published a community`, 400));
+    }
 
     const community = await Community.create(req.body);
   
