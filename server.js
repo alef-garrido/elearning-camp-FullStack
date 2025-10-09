@@ -6,7 +6,7 @@ const fileupload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
 const errorHandler = require('./middleware/error');
 const connectDB = require('./config/db');
-const auth = require('./routes/auth');
+
 
 // Load env vars
 dotenv.config({ path: './config/config.env' });
@@ -18,6 +18,8 @@ connectDB();
 // Route files
 const communities = require('./routes/communities');
 const courses = require('./routes/courses');
+const auth = require('./routes/auth');
+const users = require('./routes/users');
 
 const app = express();
 
@@ -41,6 +43,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/api/v1/communities', communities);
 app.use('/api/v1/courses', courses);
 app.use('/api/v1/auth', auth);
+app.use('/api/v1/users', users);
 
 // Error handler middleware
 app.use(errorHandler);

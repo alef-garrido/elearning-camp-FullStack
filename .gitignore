@@ -419,3 +419,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Seed Data - Contains sensitive information like passwords
+/_data/
