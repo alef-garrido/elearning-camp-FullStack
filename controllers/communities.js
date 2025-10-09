@@ -61,14 +61,22 @@ exports.createCommunity = asyncHandler(async (req, res, next) => {
 // @access    Private
 exports.updateCommunity = asyncHandler(async (req, res, next) => {
 
-    const community = await Community.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    let community = await Community.findById(req.params.id);
   
     if (!community) {
       return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
     }
+
+    // Make sure user is community owner
+    if(community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+        return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this community`, 401));
+    }
+
+    community = await Community.findByIdAndUpdate(req.params.id, req.body, {
+        new: true,
+        runValidators: true
+    });
+    
     res.status(200).json({ success: true, data: community });
 
 })
@@ -85,6 +93,11 @@ exports.deleteCommunity = asyncHandler(async (req, res, next) => {
       return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
     }
 
+    // Make sure user is community owner
+    if(community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+        return next(new ErrorResponse(`User ${req.user.id} is not authorized to delete this community`, 401));
+    }
+    
     await community.deleteOne();
     
     res.status(200).json({ success: true, data: {} });
@@ -133,6 +146,11 @@ exports.communityPhotoUpload = asyncHandler(async (req, res, next) => {
 
     if (!community) {
       return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
+    }
+
+    // Make sure user is community owner
+    if(community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+        return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this community`, 401));
     }
 
     if (!req.files) {
