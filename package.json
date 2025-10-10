@@ -27,6 +27,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-fileupload": "^1.5.2",
+    "express-xss-sanitizer": "^2.0.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongo-sanitize": "^1.1.0",

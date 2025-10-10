@@ -7,6 +7,7 @@ const cookieParser = require('cookie-parser');
 const errorHandler = require('./middleware/error');
 const mongoSanitize = require('./middleware/mongoSanitize');
 const helmet = require('helmet');
+const { xss } = require('express-xss-sanitizer');
 const connectDB = require('./config/db');
 
 
@@ -45,6 +46,9 @@ app.use(mongoSanitize);
 
 // Set security headers
 app.use(helmet());
+
+// Prevent XSS attacks
+app.use(xss());
 
 // Set static folder
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
