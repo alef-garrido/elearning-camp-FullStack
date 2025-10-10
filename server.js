@@ -8,6 +8,9 @@ const errorHandler = require('./middleware/error');
 const mongoSanitize = require('./middleware/mongoSanitize');
 const helmet = require('helmet');
 const { xss } = require('express-xss-sanitizer');
+const hpp = require('hpp');
+const rateLimit = require('express-rate-limit');
+const cors = require('cors');
 const connectDB = require('./config/db');
 
 
@@ -44,11 +47,24 @@ app.use(fileupload());
 // Sanitize data
 app.use(mongoSanitize);
 
+// Enable CORS
+app.use(cors());
+
 // Set security headers
 app.use(helmet());
 
 // Prevent XSS attacks
 app.use(xss());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 mins
+  max: 100
+});
+app.use(limiter);
+
+// Prevent http param pollution
+app.use(hpp());
 
 // Set static folder
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
