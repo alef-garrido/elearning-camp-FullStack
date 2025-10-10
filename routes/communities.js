@@ -12,6 +12,7 @@ const advancedResults = require('../middleware/advancedResults');
 const Community = require('../models/Community');
 // Include other resource routers
 const courseRouter = require('./courses');
+const reviewRouter = require('./reviews');
 
 
 const router = express.Router();
@@ -20,6 +21,7 @@ const { protect, authorize}  = require('../middleware/auth');
 
 // Re-route into other resource routers
 router.use('/:communityId/courses', courseRouter);
+router.use('/:communityId/reviews', reviewRouter);
 
 router
     .route('/:id/photo')
