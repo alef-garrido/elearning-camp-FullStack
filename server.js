@@ -67,7 +67,7 @@ app.use(limiter);
 app.use(hpp());
 
 // Set static folder
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Mount routers
 app.use('/api/v1/communities', communities);

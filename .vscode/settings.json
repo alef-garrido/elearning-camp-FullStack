@@ -1,0 +1,7 @@
+{
+    "css.validate": true,
+    "css.lint.validProperties": ["appearance", "-webkit-appearance"],
+    "[html]": {
+        "css.validate": false
+    }
+}
