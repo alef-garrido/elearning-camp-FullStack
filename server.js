@@ -12,7 +12,7 @@ const hpp = require('hpp');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const connectDB = require('./config/db');
-
+const cors = require('cors');
 
 // Load env vars
 dotenv.config({ path: './config/config.env' });
@@ -29,6 +29,10 @@ const users = require('./routes/users');
 const reviews = require('./routes/reviews');
 
 const app = express();
+
+app.use(cors({
+ origin: process.env.FRONTEND_URL // Permitir solo peticiones del frontend
+}));
 
 // Body parser
 app.use(express.json());
@@ -94,3 +98,4 @@ process.on('unhandledRejection', (err, promise) => {
   // Close server & exit process
   server.close(() => process.exit(1));
 });
+

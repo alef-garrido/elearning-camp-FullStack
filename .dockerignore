@@ -1,0 +1,19 @@
+# Ignorar dependencias locales
+node_modules
+
+# Ignorar logs y archivos de debug
+npm-debug.log
+
+# Ignorar archivos del sistema operativo
+.DS_Store
+
+# Ignorar archivos de configuración de IDEs
+.vscode/
+
+# Ignorar el propio Dockerfile y .dockerignore
+Dockerfile
+.dockerignore
+
+# Ignorar el control de versiones
+.git
+.gitignore
