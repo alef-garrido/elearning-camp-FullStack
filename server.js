@@ -12,7 +12,6 @@ const hpp = require('hpp');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const cors = require('cors');
 
 // Load env vars
 dotenv.config({ path: './config/config.env' });
