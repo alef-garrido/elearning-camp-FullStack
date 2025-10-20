@@ -1,108 +1,58 @@
-# eLearning Camp API
+# eLearning Camp Monorepo
 
-Backend API for the eLearning Camp platform, built with Node.js, Express, and MongoDB.
+This monorepo contains the full-stack application for the eLearning Camp platform.
 
-## Table of Contents
+## Project Structure
 
-- [About The Project](#about-the-project)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-- [Usage](#usage)
-  - [Running the Server](#running-the-server)
-  - [Seeding the Database](#seeding-the-database)
-- [API Endpoints](#api-endpoints)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
+```
+/eLearning-Camp/
+│
+├── backend/        # Node.js/Express API
+├── frontend/       # React frontend (coming soon)
+├── package.json    # Root package.json
+├── pnpm-workspace.yaml
+└── turbo.json     # Turborepo configuration
+```
 
-## About The Project
+## Prerequisites
 
-This project serves as the backend for an e-learning platform. It provides a RESTful API to manage communities, courses, users, reviews, and authentication.
-
-### Built With
-
-* [Node.js](https://nodejs.org/)
-* [Express.js](https://expressjs.com/)
-* [MongoDB](https://www.mongodb.com/)
+- Node.js >= 18
+- pnpm >= 8.0.0
 
 ## Getting Started
 
-To get a local copy up and running follow these simple steps.
-
-### Prerequisites
-
-* [Node.js](https://nodejs.org/en/download/)
-* [MongoDB](https://www.mongodb.com/try/download/community)
-
-### Installation
-
-1. Clone the repo
-   ```sh
-   git clone https://github.com/alef-garrido/elearning-camp-backend.git
-   ```
-2. Install NPM packages
-   ```sh
-   npm install
-   ```
-3. Create a `config/config.env` file. You can use `config.env.env` as a template. Add your environment variables (e.g., `MONGO_URI`, `JWT_SECRET`).
-
-## Usage
-
-### Running the Server
-
-To run the server in development mode with watching:
-
-```sh
-npm run dev
+1. Install pnpm if you haven't already:
+```bash
+npm install -g pnpm
 ```
 
-To run the server in production mode:
-
-```sh
-npm run start
+2. Install dependencies:
+```bash
+pnpm install
 ```
 
-### Seeding the Database
+3. Start development servers:
+```bash
+# Run both frontend and backend in development mode
+pnpm dev
 
-You can seed the database with some initial data using the `seeder.js` script.
-
-To import data:
-
-```sh
-node seeder -i
+# Run only backend
+pnpm dev --filter backend
 ```
 
-To delete data:
+## Available Scripts
 
-```sh
-node seeder -d
-```
+- `pnpm dev` - Start all packages in development mode
+- `pnpm build` - Build all packages
+- `pnpm test` - Run tests across packages
+- `pnpm lint` - Lint all packages
+- `pnpm clean` - Clean all builds and node_modules
 
-## API Endpoints
+## Package Documentation
 
-The API version 1 is available under the `/api/v1` prefix.
-
-*   **Authentication:** `/api/v1/auth`
-*   **Communities:** `/api/v1/communities`
-*   **Courses:** `/api/v1/courses`
-*   **Users:** `/api/v1/users`
-*   **Reviews:** `/api/v1/reviews`
-
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m '''Add some AmazingFeature'''`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+- [Backend Documentation](./backend/README.md)
+- Frontend Documentation (coming soon)
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
-
-## Acknowledgements
-
-*   [Brad Traversy](https://github.com/bradtraversy) for the course this project was based on.
+MIT - See [LICENSE](./backend/LICENSE) for details.
