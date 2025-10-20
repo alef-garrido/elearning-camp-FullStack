@@ -462,3 +462,7 @@ FodyWeavers.xsd
 
 # Seed Data - Contains sensitive information like passwords
 /_data/
+
+# Next.js build
+**/.next/
+**/out/
