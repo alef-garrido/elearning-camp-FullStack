@@ -38,22 +38,33 @@ export const CourseCard = ({ course }: CourseCardProps) => {
             {course.description}
           </p>
           
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 text-sm">
-            <div className="flex items-center gap-3 sm:gap-4 text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4 flex-shrink-0" />
-                <span className="text-xs sm:text-sm">{course.weeks} weeks</span>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 text-sm">
+              <div className="flex items-center gap-3 sm:gap-4 text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">{course.weeks} weeks</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <DollarSign className="h-4 w-4 flex-shrink-0" />
+                  <span className="font-medium text-foreground text-xs sm:text-sm">${course.membership}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4 flex-shrink-0" />
-                <span className="font-medium text-foreground text-xs sm:text-sm">${course.membership}</span>
-              </div>
+              
+              {course.scholarshipsAvailable && (
+                <Badge variant="secondary" className="text-xs">
+                  Scholarship
+                </Badge>
+              )}
             </div>
-            
-            {course.scholarshipsAvailable && (
-              <Badge variant="secondary" className="text-xs">
-                Scholarship
-              </Badge>
+
+            {typeof course.community !== 'string' && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>By</span>
+                <Badge variant="outline" className="text-xs">
+                  {course.community.name}
+                </Badge>
+              </div>
             )}
           </div>
         </div>

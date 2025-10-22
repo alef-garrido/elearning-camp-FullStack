@@ -4,6 +4,13 @@ import { Navbar } from "@/components/Navbar";
 import { CommunityCard } from "@/components/CommunityCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Community } from "@/types/api";
 import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
@@ -12,52 +19,28 @@ const Communities = () => {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
 
   useEffect(() => {
     loadCommunities();
-  }, []);
+  }, [currentPage, selectedTopics]);
 
   const loadCommunities = async () => {
     try {
-      const response: any = await ApiClient.getCommunities();
+      const response = await ApiClient.getCommunities({
+        page: currentPage,
+        limit: 9,
+        ...(selectedTopics.length > 0 && { topics: selectedTopics.join(',') })
+      });
       setCommunities(response.data || []);
+      if (response.pagination) {
+        setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to load communities");
-      // Mock data for demo
-      setCommunities([
-        {
-          _id: "1",
-          name: "Web Development Bootcamp",
-          description: "Learn full-stack web development with modern technologies and best practices.",
-          averageRating: 4.8,
-          isPaid: true,
-          hasMentorship: true,
-          hasLiveEvents: true,
-          topics: ["React", "Node.js", "TypeScript"],
-          createdAt: new Date().toISOString(),
-        },
-        {
-          _id: "2",
-          name: "Data Science Academy",
-          description: "Master data analysis, machine learning, and AI with hands-on projects.",
-          averageRating: 4.9,
-          address: "San Francisco, CA",
-          isPaid: true,
-          hasMentorship: true,
-          topics: ["Python", "ML", "AI"],
-          createdAt: new Date().toISOString(),
-        },
-        {
-          _id: "3",
-          name: "Design Systems Pro",
-          description: "Create beautiful and consistent user interfaces with modern design principles.",
-          averageRating: 4.7,
-          website: "https://example.com",
-          hasLiveEvents: true,
-          topics: ["UI/UX", "Figma", "Design"],
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      setCommunities([]);
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +70,7 @@ const Communities = () => {
           </Button>
         </div>
 
-        <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 sm:mb-8">
           <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             <Input
@@ -97,6 +80,22 @@ const Communities = () => {
               className="pl-9 sm:pl-10"
             />
           </div>
+          
+          <Select
+            value={selectedTopics.length === 0 ? "all" : selectedTopics[0]}
+            onValueChange={(value) => setSelectedTopics(value === "all" ? [] : [value])}
+          >
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Filter by Topic" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Topics</SelectItem>
+              <SelectItem value="programming">Programming</SelectItem>
+              <SelectItem value="design">Design</SelectItem>
+              <SelectItem value="business">Business</SelectItem>
+              <SelectItem value="marketing">Marketing</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {isLoading ? (
@@ -110,11 +109,49 @@ const Communities = () => {
             <p className="text-muted-foreground text-base sm:text-lg">No communities found</p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredCommunities.map((community) => (
-              <CommunityCard key={community._id} community={community} />
-            ))}
-          </div>
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {filteredCommunities.map((community) => (
+                <CommunityCard key={community._id} community={community} />
+              ))}
+            </div>
+            
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || isLoading}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        disabled={isLoading}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || isLoading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

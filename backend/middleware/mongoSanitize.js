@@ -1,22 +1,31 @@
 const sanitize = require('mongo-sanitize');
 
 const mongoSanitize = (req, res, next) => {
-  // Sanitize request body
-  if (req.body) {
-    req.body = sanitize(req.body);
-  }
+  try {
+    if (!req) {
+      return next(new Error('Request object is undefined'));
+    }
 
-  // Sanitize query parameters
-  if (req.query) {
-    req.query = sanitize(req.query);
-  }
+    // Sanitize request body
+    if (req.body && typeof req.body === 'object') {
+      req.body = sanitize(req.body);
+    }
 
-  // Sanitize path parameters
-  if (req.params) {
-    req.params = sanitize(req.params);
-  }
+    // Sanitize query parameters
+    if (req.query && typeof req.query === 'object') {
+      req.query = sanitize(req.query);
+    }
 
-  next();
+    // Sanitize path parameters
+    if (req.params && typeof req.params === 'object') {
+      req.params = sanitize(req.params);
+    }
+
+    next();
+  } catch (error) {
+    console.error('MongoDB Sanitize Error:', error);
+    next(error);
+  }
 };
 
 module.exports = mongoSanitize;

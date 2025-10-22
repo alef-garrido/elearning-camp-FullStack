@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, DollarSign } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { CourseCard } from "@/components/CourseCard";
 import { Button } from "@/components/ui/button";
@@ -20,56 +20,27 @@ const Courses = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [skillFilter, setSkillFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [priceRange, setPriceRange] = useState<string>("all");
 
   useEffect(() => {
     loadCourses();
-  }, []);
+  }, [currentPage, skillFilter, priceRange]);
 
   const loadCourses = async () => {
     try {
-      const response: any = await ApiClient.getCourses();
+      const response = await ApiClient.getCourses({
+        page: currentPage,
+        limit: 9
+      });
       setCourses(response.data || []);
+      if (response.pagination) {
+        setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to load courses");
-      // Mock data for demo
-      setCourses([
-        {
-          _id: "1",
-          title: "React & TypeScript Masterclass",
-          description: "Build modern web applications with React 18, TypeScript, and best practices.",
-          weeks: "12",
-          membership: 499,
-          minimumSkill: "intermediate",
-          scholarshipsAvailable: true,
-          community: "1",
-          user: "user1",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          _id: "2",
-          title: "Python for Data Science",
-          description: "Learn Python fundamentals and dive into data analysis with pandas and numpy.",
-          weeks: "8",
-          membership: 399,
-          minimumSkill: "beginner",
-          scholarshipsAvailable: true,
-          community: "2",
-          user: "user2",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          _id: "3",
-          title: "Advanced UI/UX Design",
-          description: "Master user interface design with Figma and learn to create stunning experiences.",
-          weeks: "10",
-          membership: 449,
-          minimumSkill: "advanced",
-          scholarshipsAvailable: false,
-          community: "3",
-          user: "user3",
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      setCourses([]);
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +50,11 @@ const Courses = () => {
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          course.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSkill = skillFilter === "all" || course.minimumSkill === skillFilter;
-    return matchesSearch && matchesSkill;
+    const matchesPrice = priceRange === "all" || 
+      (priceRange === "free" && course.membership === 0) ||
+      (priceRange === "paid" && course.membership > 0) ||
+      (priceRange === "scholarship" && course.scholarshipsAvailable);
+    return matchesSearch && matchesSkill && matchesPrice;
   });
 
   return (
@@ -112,18 +87,33 @@ const Courses = () => {
             />
           </div>
           
-          <Select value={skillFilter} onValueChange={setSkillFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Skill Level" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Levels</SelectItem>
-              <SelectItem value="beginner">Beginner</SelectItem>
-              <SelectItem value="intermediate">Intermediate</SelectItem>
-              <SelectItem value="advanced">Advanced</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-3">
+            <Select value={skillFilter} onValueChange={setSkillFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Skill Level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="beginner">Beginner</SelectItem>
+                <SelectItem value="intermediate">Intermediate</SelectItem>
+                <SelectItem value="advanced">Advanced</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={priceRange} onValueChange={setPriceRange}>
+              <SelectTrigger className="w-full sm:w-48">
+                <DollarSign className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Price Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Prices</SelectItem>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="scholarship">With Scholarship</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {isLoading ? (
@@ -137,11 +127,49 @@ const Courses = () => {
             <p className="text-muted-foreground text-base sm:text-lg">No courses found</p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredCourses.map((course) => (
-              <CourseCard key={course._id} course={course} />
-            ))}
-          </div>
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {filteredCourses.map((course) => (
+                <CourseCard key={course._id} course={course} />
+              ))}
+            </div>
+            
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || isLoading}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        disabled={isLoading}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || isLoading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

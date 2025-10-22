@@ -28,38 +28,20 @@ const CourseDetail = () => {
 
   const loadCourseData = async () => {
     try {
-      const courseRes: any = await ApiClient.getCourse(id!);
+      const courseRes = await ApiClient.getCourse(id!);
       const courseData = courseRes.data;
       setCourse(courseData);
       
       if (typeof courseData.community === 'string') {
-        const communityRes: any = await ApiClient.getCommunity(courseData.community);
+        const communityRes = await ApiClient.getCommunity(courseData.community);
         setCommunity(communityRes.data);
       } else {
         setCommunity(courseData.community);
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to load course");
-      // Mock data
-      setCourse({
-        _id: id!,
-        title: "Full-Stack Web Development",
-        description: "Master the art of full-stack web development with this comprehensive course. Learn React, Node.js, Express, MongoDB, and modern development practices. Build real-world projects and deploy them to production. Perfect for beginners looking to start their web development career or developers wanting to level up their skills.",
-        weeks: "12",
-        membership: 299,
-        minimumSkill: "beginner",
-        scholarshipsAvailable: true,
-        community: "1",
-        user: "user1",
-        createdAt: new Date().toISOString(),
-      });
-      setCommunity({
-        _id: "1",
-        name: "Web Development Bootcamp",
-        description: "Learn full-stack web development with modern technologies",
-        averageRating: 4.8,
-        createdAt: new Date().toISOString(),
-      });
+      setCourse(null);
+      setCommunity(null);
     } finally {
       setIsLoading(false);
     }

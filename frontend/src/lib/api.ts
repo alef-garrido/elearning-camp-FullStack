@@ -1,4 +1,31 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.learnhub.com';
+import {
+  ApiResponse,
+  Community,
+  Course,
+  Review,
+  User,
+  AuthResponse,
+  LoginInput,
+  RegisterInput,
+  CreateCommunityInput,
+  CreateCourseInput,
+  CreateReviewInput,
+  UpdateUserDetailsInput,
+  UpdatePasswordInput,
+  ResetPasswordInput,
+  PaginationParams,
+  CommunityQueryParams
+} from '@/types/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+
+class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
 
 export class ApiClient {
   private static getAuthToken(): string | null {
@@ -10,8 +37,19 @@ export class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const token = this.getAuthToken();
-    const headers: HeadersInit = {
+    const defaultHeaders: HeadersInit = {
+      'Accept': 'application/json',
       'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    };
+
+    // Only set Content-Type for non-FormData requests
+    if (options.body instanceof FormData) {
+      delete defaultHeaders['Content-Type'];
+    }
+
+    const headers: HeadersInit = {
+      ...defaultHeaders,
       ...options.headers,
     };
 
@@ -22,117 +60,202 @@ export class ApiClient {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
+      credentials: 'include',
+      mode: 'cors',
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
+      const errorBody = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+      const errorMessage = errorBody.error || errorBody.message || `Request failed with status ${response.status}`;
+      throw new ApiError(errorMessage, response.status);
     }
 
+    // Handle responses that might not have a body (e.g., 204 No Content)
+    if (response.status === 204) {
+      return Promise.resolve({ success: true } as T);
+    }
+    
     return response.json();
   }
 
-  // Auth endpoints
-  static async login(email: string, password: string) {
-    return this.request('/api/v1/auth/login', {
+  // Auth Methods
+  static async login(input: LoginInput): Promise<AuthResponse> {
+    return this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(input),
     });
   }
 
-  static async register(name: string, email: string, password: string, role: 'user' | 'publisher' = 'user') {
-    return this.request('/api/v1/auth/register', {
+  static async register(input: RegisterInput): Promise<AuthResponse> {
+    return this.request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, role }),
+      body: JSON.stringify(input),
     });
   }
 
-  static async logout() {
-    return this.request('/api/v1/auth/logout', { method: 'GET' });
+  static async logout(): Promise<{ success: boolean }> {
+    return this.request('/auth/logout');
   }
 
-  // Communities
-  static async getCommunities(params?: { page?: number; limit?: number }) {
-    const query = new URLSearchParams();
-    if (params?.page) query.set('page', params.page.toString());
-    if (params?.limit) query.set('limit', params.limit.toString());
-    return this.request(`/api/v1/communities?${query}`);
+  static async getCurrentUser(): Promise<ApiResponse<User>> {
+    return this.request('/auth/me');
   }
 
-  static async getCommunityCourses(communityId: string, params?: { page?: number; limit?: number }) {
-    const query = new URLSearchParams();
-    if (params?.page) query.set('page', params.page.toString());
-    if (params?.limit) query.set('limit', params.limit.toString());
-    return this.request(`/api/v1/communities/${communityId}/courses?${query}`);
-  }
-
-  static async getCommunity(id: string) {
-    return this.request(`/api/v1/communities/${id}`);
-  }
-
-  static async createCommunity(data: any) {
-    return this.request('/api/v1/communities', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  // Courses
-  static async getCourses(params?: { page?: number; limit?: number }) {
-    const query = new URLSearchParams();
-    if (params?.page) query.set('page', params.page.toString());
-    if (params?.limit) query.set('limit', params.limit.toString());
-    return this.request(`/api/v1/courses?${query}`);
-  }
-
-  static async getCourse(id: string) {
-    return this.request(`/api/v1/courses/${id}`);
-  }
-
-  static async createCourse(data: any) {
-    return this.request('/api/v1/courses', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  // Reviews
-  static async getReviews(communityId: string, params?: { page?: number; limit?: number }) {
-    const query = new URLSearchParams();
-    if (params?.page) query.set('page', params.page.toString());
-    if (params?.limit) query.set('limit', params.limit.toString());
-    return this.request(`/api/v1/communities/${communityId}/reviews?${query}`);
-  }
-
-  static async createReview(communityId: string, data: any) {
-    return this.request(`/api/v1/communities/${communityId}/reviews`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  // Photo upload
-  static async uploadCommunityPhoto(communityId: string, file: File) {
-    const formData = new FormData();
-    formData.append('photo', file);
-
-    const token = this.getAuthToken();
-    const headers: HeadersInit = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/v1/communities/${communityId}/photo`, {
+  static async updateUserDetails(input: UpdateUserDetailsInput): Promise<ApiResponse<User>> {
+    return this.request('/auth/updatedetails', {
       method: 'PUT',
-      headers,
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async updatePassword(input: UpdatePasswordInput): Promise<AuthResponse> {
+    return this.request('/auth/updatepassword', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async forgotPassword(email: string): Promise<{ success: boolean }> {
+    return this.request('/auth/forgotpassword', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  static async resetPassword(input: ResetPasswordInput): Promise<AuthResponse> {
+    return this.request(`/auth/resetpassword/${input.resetToken}`, {
+      method: 'PUT',
+      body: JSON.stringify({ password: input.password }),
+    });
+  }
+
+  // Communities Methods
+  static async getCommunities(params?: CommunityQueryParams): Promise<ApiResponse<Community[]>> {
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          query.set(key, value.toString());
+        }
+      });
+    }
+    return this.request(`/communities?${query}`);
+  }
+
+  static async getCommunity(id: string): Promise<ApiResponse<Community>> {
+    return this.request(`/communities/${id}`);
+  }
+
+  static async createCommunity(input: CreateCommunityInput): Promise<ApiResponse<Community>> {
+    return this.request('/communities', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async updateCommunity(id: string, input: Partial<CreateCommunityInput>): Promise<ApiResponse<Community>> {
+    return this.request(`/communities/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async deleteCommunity(id: string): Promise<ApiResponse<void>> {
+    return this.request(`/communities/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async uploadCommunityPhoto(id: string, photo: File): Promise<ApiResponse<Community>> {
+    const formData = new FormData();
+    formData.append('file', photo);
+
+    return this.request(`/communities/${id}/photo`, {
+      method: 'PUT',
+      headers: {
+        // When using FormData, we must not set Content-Type.
+        // The browser will set it to 'multipart/form-data' with the correct boundary.
+      },
       body: formData,
     });
+  }
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Upload failed' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
+  // Courses Methods
+  static async getCourses(params?: PaginationParams): Promise<ApiResponse<Course[]>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/courses?${query}`);
+  }
 
-    return response.json();
+  static async getCourse(id: string): Promise<ApiResponse<Course>> {
+    return this.request(`/courses/${id}`);
+  }
+
+  static async createCourse(input: CreateCourseInput): Promise<ApiResponse<Course>> {
+    return this.request('/courses', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async updateCourse(id: string, input: Partial<CreateCourseInput>): Promise<ApiResponse<Course>> {
+    return this.request(`/courses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async deleteCourse(id: string): Promise<ApiResponse<void>> {
+    return this.request(`/courses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async getCommunityCourses(
+    communityId: string,
+    params?: PaginationParams
+  ): Promise<ApiResponse<Course[]>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/communities/${communityId}/courses?${query}`);
+  }
+
+  // Reviews Methods
+  static async getReviews(
+    communityId: string,
+    params?: PaginationParams
+  ): Promise<ApiResponse<Review[]>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/communities/${communityId}/reviews?${query}`);
+  }
+
+  static async createReview(
+    communityId: string,
+    input: CreateReviewInput
+  ): Promise<ApiResponse<Review>> {
+    return this.request(`/communities/${communityId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async updateReview(
+    reviewId: string,
+    input: Partial<CreateReviewInput>
+  ): Promise<ApiResponse<Review>> {
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async deleteReview(reviewId: string): Promise<ApiResponse<void>> {
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'DELETE',
+    });
   }
 }

@@ -31,14 +31,22 @@ const CommunityDetail = () => {
 
   useEffect(() => {
     loadCommunityData();
-    // Check if user is owner (mock - in real app, check against user's communities)
-    const token = localStorage.getItem('auth_token');
-    setIsOwner(!!token);
+    checkCommunityOwnership();
   }, [id, coursesPage, reviewsPage]);
+
+  const checkCommunityOwnership = async () => {
+    try {
+      const currentUser = await ApiClient.getCurrentUser();
+      setIsOwner(currentUser.data.role === 'admin' || 
+                (community?.user === currentUser.data._id));
+    } catch (error) {
+      setIsOwner(false);
+    }
+  };
 
   const loadCommunityData = async () => {
     try {
-      const [communityRes, coursesRes, reviewsRes]: any = await Promise.all([
+      const [communityRes, coursesRes, reviewsRes] = await Promise.all([
         ApiClient.getCommunity(id!),
         ApiClient.getCommunityCourses(id!, { page: coursesPage, limit: coursesPerPage }),
         ApiClient.getReviews(id!, { page: reviewsPage, limit: reviewsPerPage }),
@@ -48,80 +56,21 @@ const CommunityDetail = () => {
       
       // Handle pagination response
       if (coursesRes.pagination) {
-        const totalPages = Math.ceil(coursesRes.count / coursesPerPage);
+        const totalPages = Math.ceil(coursesRes.pagination.total / coursesPerPage);
         setCoursesPagination(totalPages);
       }
       setCourses(coursesRes.data || []);
       
       if (reviewsRes.pagination) {
-        const totalPages = Math.ceil(reviewsRes.count / reviewsPerPage);
+        const totalPages = Math.ceil(reviewsRes.pagination.total / reviewsPerPage);
         setReviewsPagination(totalPages);
       }
       setReviews(reviewsRes.data || []);
     } catch (error: any) {
       toast.error(error.message || "Failed to load community");
-      // Mock data
-      setCommunity({
-        _id: id!,
-        name: "Web Development Bootcamp",
-        description: "Learn full-stack web development with modern technologies and best practices. Our comprehensive program covers everything from HTML/CSS basics to advanced React patterns and Node.js backend development.",
-        averageRating: 4.8,
-        isPaid: true,
-        hasMentorship: true,
-        hasLiveEvents: true,
-        topics: ["React", "Node.js", "TypeScript", "MongoDB", "GraphQL"],
-        website: "https://webdevbootcamp.com",
-        email: "info@webdevbootcamp.com",
-        phone: "+1 (555) 123-4567",
-        address: "123 Tech Street, San Francisco, CA 94105",
-        createdAt: new Date().toISOString(),
-      });
-      setCourses([
-        {
-          _id: "1",
-          title: "Full-Stack Web Development",
-          description: "Master React, Node.js, and modern web development",
-          weeks: "12",
-          membership: 299,
-          minimumSkill: "beginner",
-          scholarshipsAvailable: true,
-          community: id!,
-          user: "user1",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          _id: "2",
-          title: "Advanced React Patterns",
-          description: "Deep dive into advanced React concepts and patterns",
-          weeks: "8",
-          membership: 199,
-          minimumSkill: "intermediate",
-          scholarshipsAvailable: false,
-          community: id!,
-          user: "user1",
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-      setReviews([
-        {
-          _id: "1",
-          title: "Great learning experience",
-          text: "The instructors are knowledgeable and the curriculum is well-structured.",
-          rating: 5,
-          community: id!,
-          user: "user1",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          _id: "2",
-          title: "Highly recommended",
-          text: "I learned so much and got a job within 3 months of completing the program!",
-          rating: 5,
-          community: id!,
-          user: "user2",
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      setCommunity(null);
+      setCourses([]);
+      setReviews([]);
     } finally {
       setIsLoading(false);
     }
