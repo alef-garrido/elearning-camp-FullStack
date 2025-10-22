@@ -13,6 +13,59 @@
 !.yarn/releases
 !.yarn/versions
 
+# Turborepo
+.turbo
+
+# Build directories
+**/dist
+**/build
+
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Debug files
+**/.debug/
+**/debug.log
+
+# Uploaded files
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# VSCode specific
+.vscode-test/
+.vscode-test-web/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.swp
+*.swo
+*~
+*.bak
+*.temp
+.cache/
+.parcel-cache/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+.nyc_output/
+
 # testing
 /coverage
 
