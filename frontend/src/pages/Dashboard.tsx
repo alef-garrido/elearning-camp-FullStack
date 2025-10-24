@@ -1,116 +1,236 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Award, Star, TrendingUp, Image as ImageIcon } from "lucide-react";
+import { BookOpen, Award, Star, TrendingUp, Image as ImageIcon, Pencil, Trash2, Users } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ApiClient } from "@/lib/api";
+import { User } from "@/types/api";
+import { toast } from "sonner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [showCommunityPhotos, setShowCommunityPhotos] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem('auth_token')) {
-      navigate('/auth');
-    }
+    const fetchUserData = async () => {
+      try {
+        if (!localStorage.getItem('auth_token')) {
+          navigate('/auth');
+          return;
+        }
+
+        const response = await ApiClient.getCurrentUser();
+        setUser(response.data);
+        
+        // If user is admin, fetch all users
+        if (response.data.role === 'admin') {
+          const usersResponse = await ApiClient.getUsers();
+          setUsers(usersResponse.data);
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Failed to load user data");
+        navigate('/auth');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
   }, [navigate]);
 
-  const stats = [
-    { label: "Enrolled Courses", value: "5", icon: BookOpen, color: "text-primary" },
-    { label: "Completed", value: "2", icon: Award, color: "text-accent" },
-    { label: "Average Rating", value: "4.8", icon: Star, color: "text-yellow-500" },
-    { label: "Learning Streak", value: "12 days", icon: TrendingUp, color: "text-green-500" },
-  ];
+  const handleUserUpdate = async (userId: string, updates: { name?: string; email?: string; }) => {
+    try {
+      await ApiClient.updateUser(userId, updates);
+      const usersResponse = await ApiClient.getUsers();
+      setUsers(usersResponse.data);
+      toast.success('User updated successfully');
+      setIsEditDialogOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update user');
+    }
+  };
+
+  const handleUserDelete = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    
+    try {
+      await ApiClient.deleteUser(userId);
+      const usersResponse = await ApiClient.getUsers();
+      setUsers(usersResponse.data);
+      toast.success('User deleted successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete user');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container py-8 sm:py-12 px-4">
-        <div className="mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Welcome Back!</h1>
-          <p className="text-muted-foreground text-base sm:text-lg">
-            Here's your learning progress overview
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-8 sm:mb-12">
-          {stats.map((stat) => (
-            <Card key={stat.label} className="shadow-soft hover:shadow-medium transition-shadow bg-gradient-card border-border/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 sm:p-4 md:p-6">
-                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-                  {stat.label}
-                </CardTitle>
-                <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`} />
-              </CardHeader>
-              <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold">{stat.value}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mb-8 sm:mb-12">
-          <Card className="shadow-soft border-border/50 bg-gradient-card">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-lg sm:text-xl">Continue Learning</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="space-y-3 sm:space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-primary flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold mb-1 text-sm sm:text-base truncate">React Fundamentals</h3>
-                      <div className="w-full bg-secondary rounded-full h-2">
-                        <div className="bg-gradient-primary h-2 rounded-full" style={{ width: '60%' }} />
-                      </div>
-                    </div>
-                    <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">60%</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-soft border-border/50 bg-gradient-card">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-lg sm:text-xl">Recommended for You</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="space-y-3 sm:space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-accent to-primary flex items-center justify-center flex-shrink-0">
-                      <Award className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold mb-1 text-sm sm:text-base truncate">Advanced TypeScript</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground truncate">8 weeks • Intermediate</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="shadow-soft border-border/50 bg-gradient-card">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <ImageIcon className="h-5 w-5" />
-              My Community Photos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <div className="text-center py-8 text-muted-foreground">
-              <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>You haven't uploaded any community photos yet.</p>
-              <p className="text-sm mt-2">Visit your communities to upload photos.</p>
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <p className="text-lg text-muted-foreground">Loading...</p>
+          </div>
+        ) : user ? (
+          <>
+            <div className="mb-8 sm:mb-12">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+                Welcome Back, {user.name.split(' ')[0]}!
+              </h1>
+              <p className="text-muted-foreground text-base sm:text-lg">
+                Here's your account information
+              </p>
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="grid gap-4 sm:gap-6">
+              {/* User Profile Card */}
+              <Card className="shadow-soft border-border/50 bg-gradient-card">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-lg sm:text-xl">Profile Information</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Full Name</p>
+                      <p className="text-lg font-medium">{user.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="text-lg font-medium">{user.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Role</p>
+                      <p className="text-lg font-medium capitalize">{user.role}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Member Since</p>
+                      <p className="text-lg font-medium">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Admin: User Management Section */}
+              {user.role === 'admin' && (
+                <Card className="shadow-soft border-border/50">
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        User Management
+                      </CardTitle>
+                      <span className="text-sm text-muted-foreground">
+                        {users.length} users total
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Join Date</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((u) => (
+                          <TableRow key={u._id}>
+                            <TableCell>{u.name}</TableCell>
+                            <TableCell>{u.email}</TableCell>
+                            <TableCell className="capitalize">{u.role}</TableCell>
+                            <TableCell>{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Dialog open={isEditDialogOpen && selectedUser?._id === u._id} onOpenChange={(open) => {
+                                  setIsEditDialogOpen(open);
+                                  if (!open) setSelectedUser(null);
+                                }}>
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => setSelectedUser(u)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Edit User</DialogTitle>
+                                    </DialogHeader>
+                                    <form onSubmit={(e) => {
+                                      e.preventDefault();
+                                      const formData = new FormData(e.currentTarget);
+                                      handleUserUpdate(u._id, {
+                                        name: formData.get('name') as string,
+                                        email: formData.get('email') as string,
+                                      });
+                                    }}>
+                                      <div className="grid gap-4 py-4">
+                                        <div className="grid gap-2">
+                                          <Label htmlFor="name">Name</Label>
+                                          <Input
+                                            id="name"
+                                            name="name"
+                                            defaultValue={u.name}
+                                            required
+                                          />
+                                        </div>
+                                        <div className="grid gap-2">
+                                          <Label htmlFor="email">Email</Label>
+                                          <Input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            defaultValue={u.email}
+                                            required
+                                          />
+                                        </div>
+                                      </div>
+                                      <DialogFooter>
+                                        <Button type="submit">Save changes</Button>
+                                      </DialogFooter>
+                                    </form>
+                                  </DialogContent>
+                                </Dialog>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleUserDelete(u._id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <p className="text-lg text-muted-foreground">Please log in to view your dashboard</p>
+          </div>
+        )}
       </div>
     </div>
   );

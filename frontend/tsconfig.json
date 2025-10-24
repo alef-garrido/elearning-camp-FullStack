@@ -2,15 +2,20 @@
   "files": [],
   "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
   "compilerOptions": {
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "components": ["./src/components"],
+      "utils": ["./src/lib/utils"],
+      "ui": ["./src/components/ui"],
+      "lib": ["./src/lib"],
+      "hooks": ["./src/hooks"]
     },
-    "noImplicitAny": false,
     "noUnusedParameters": false,
-    "skipLibCheck": true,
-    "allowJs": true,
     "noUnusedLocals": false,
+    "noImplicitAny": false,
+    "allowJs": true,
     "strictNullChecks": false
   }
 }

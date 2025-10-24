@@ -23,7 +23,7 @@ const Auth = () => {
     const password = formData.get("password") as string;
 
     try {
-      const response: any = await ApiClient.login(email, password);
+      const response: any = await ApiClient.login({ email, password });
       localStorage.setItem('auth_token', response.token);
       toast.success("Welcome back!");
       navigate("/dashboard");
@@ -45,7 +45,7 @@ const Auth = () => {
     const role = (formData.get("role") as 'user' | 'publisher') || 'user';
 
     try {
-      const response: any = await ApiClient.register(name, email, password, role);
+      const response: any = await ApiClient.register({ name, email, password, role });
       localStorage.setItem('auth_token', response.token);
       toast.success("Account created successfully!");
       navigate("/dashboard");

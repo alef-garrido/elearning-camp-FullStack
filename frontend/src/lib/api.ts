@@ -258,4 +258,32 @@ export class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Admin User Management Methods
+  static async getUsers(params?: PaginationParams): Promise<ApiResponse<User[]>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/users?${query}`);
+  }
+
+  static async createUser(input: { name: string; email: string; password: string; role: string; }): Promise<ApiResponse<User>> {
+    return this.request('/users', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async updateUser(id: string, input: { name?: string; email?: string; }): Promise<ApiResponse<User>> {
+    return this.request(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async deleteUser(id: string): Promise<ApiResponse<void>> {
+    return this.request(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
