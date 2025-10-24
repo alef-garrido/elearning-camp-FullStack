@@ -166,18 +166,25 @@ export class ApiClient {
     });
   }
 
-  static async uploadCommunityPhoto(id: string, photo: File): Promise<ApiResponse<Community>> {
+  // Upload a community photo and return a public URL to access it.
+  // The backend returns the stored filename; we construct a public URL based
+  // on the API base URL and the server's `/uploads` static path.
+  static async uploadCommunityPhoto(id: string, photo: File): Promise<ApiResponse<string>> {
     const formData = new FormData();
     formData.append('file', photo);
 
-    return this.request(`/communities/${id}/photo`, {
+    const res: any = await this.request(`/communities/${id}/photo`, {
       method: 'PUT',
-      headers: {
-        // When using FormData, we must not set Content-Type.
-        // The browser will set it to 'multipart/form-data' with the correct boundary.
-      },
+      // Don't set Content-Type when sending FormData
       body: formData,
     });
+
+    // Backend returns the filename (e.g., "photo_<id>.jpg"). Build a public URL
+    const filename = res?.data;
+    const base = API_BASE_URL.replace(/\/api\/v1$/, '');
+    const publicUrl = `${base}/uploads/${filename}`;
+
+    return { success: true, data: publicUrl } as ApiResponse<string>;
   }
 
   // Courses Methods

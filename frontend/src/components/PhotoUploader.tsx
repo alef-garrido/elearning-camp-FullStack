@@ -3,7 +3,6 @@ import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { ApiClient } from "@/lib/api";
 
 interface PhotoUploaderProps {
@@ -26,7 +25,8 @@ export const PhotoUploader = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  // Backend `MAX_FILE_UPLOAD` is set to 1000000 by default (1MB). Keep client-side limit aligned.
+  const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
   const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
   const validateFile = (file: File): string | null => {
@@ -91,36 +91,15 @@ export const PhotoUploader = ({
     setUploadProgress(0);
 
     try {
-      // Upload to Supabase Storage
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${communityId}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      setUploadProgress(20);
 
-      setUploadProgress(30);
-
-      const { error: uploadError } = await supabase.storage
-        .from('community-photos')
-        .upload(filePath, selectedFile, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) throw uploadError;
-
-      setUploadProgress(60);
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('community-photos')
-        .getPublicUrl(filePath);
-
-      setUploadProgress(80);
-
-      // Update community via API
-      await ApiClient.uploadCommunityPhoto(communityId, selectedFile);
+      // Upload file to backend (server will store it under /public/uploads)
+      const res = await ApiClient.uploadCommunityPhoto(communityId, selectedFile);
 
       setUploadProgress(100);
+      const publicUrl = res.data;
       toast.success('Photo uploaded successfully!');
+      setPreview(publicUrl);
       onUploadSuccess(publicUrl);
       onClose?.();
     } catch (error: any) {
