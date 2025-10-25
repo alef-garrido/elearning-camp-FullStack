@@ -22,18 +22,43 @@ const Communities = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string>('');
+  const [minRating, setMinRating] = useState<number | undefined>(undefined);
+  const [maxCost, setMaxCost] = useState<number | undefined>(undefined);
+  const [zipcode, setZipcode] = useState<string>('');
+  const [distanceKm, setDistanceKm] = useState<number | undefined>(undefined);
+
+  // Debounce search input to avoid excessive requests
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      loadCommunities();
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   useEffect(() => {
+    // Reload when filters or pagination change
     loadCommunities();
-  }, [currentPage, selectedTopics]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, selectedTopics, sortBy, minRating, maxCost, zipcode, distanceKm]);
 
   const loadCommunities = async () => {
     try {
-      const response = await ApiClient.getCommunities({
+      const params: any = {
         page: currentPage,
         limit: 9,
-        ...(selectedTopics.length > 0 && { topics: selectedTopics.join(',') })
-      });
+      };
+
+      if (selectedTopics.length > 0) params.topics = selectedTopics.join(',');
+      if (sortBy) params.sort = sortBy; // backend supports sort param
+      if (minRating) params.averageRating = minRating;
+      if (maxCost) params.averageCost = maxCost;
+      if (zipcode) params.location = zipcode;
+      if (distanceKm) params.distance = distanceKm;
+
+      const response = await ApiClient.getCommunities(params);
       setCommunities(response.data || []);
       if (response.pagination) {
         setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
@@ -48,7 +73,8 @@ const Communities = () => {
 
   const filteredCommunities = communities.filter(community =>
     community.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    community.description.toLowerCase().includes(searchQuery.toLowerCase())
+    community.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (community.topics || []).some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -81,21 +107,93 @@ const Communities = () => {
             />
           </div>
           
-          <Select
-            value={selectedTopics.length === 0 ? "all" : selectedTopics[0]}
-            onValueChange={(value) => setSelectedTopics(value === "all" ? [] : [value])}
-          >
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Filter by Topic" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Topics</SelectItem>
-              <SelectItem value="programming">Programming</SelectItem>
-              <SelectItem value="design">Design</SelectItem>
-              <SelectItem value="business">Business</SelectItem>
-              <SelectItem value="marketing">Marketing</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:items-center">
+            <Select
+              value={selectedTopics.length === 0 ? "all" : selectedTopics[0]}
+              onValueChange={(value) => setSelectedTopics(value === "all" ? [] : [value])}
+            >
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="Topic" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Topics</SelectItem>
+                <SelectItem value="programming">Programming</SelectItem>
+                <SelectItem value="design">Design</SelectItem>
+                <SelectItem value="business">Business</SelectItem>
+                <SelectItem value="marketing">Marketing</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy || "relevance"} onValueChange={(v) => setSortBy(v === "relevance" ? "" : v)}>
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="relevance">Relevance</SelectItem>
+                <SelectItem value="-averageRating">Rating (high → low)</SelectItem>
+                <SelectItem value="averageCost">Cost (low → high)</SelectItem>
+                <SelectItem value="-createdAt">Newest</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="w-full sm:w-40">
+            <Input
+              placeholder="Min rating (e.g. 4)"
+              type="number"
+              min={1}
+              max={5}
+              value={minRating ? String(minRating) : ''}
+              onChange={(e) => setMinRating(e.target.value ? Number(e.target.value) : undefined)}
+            />
+          </div>
+
+          <div className="w-full sm:w-40">
+            <Input
+              placeholder="Max cost"
+              type="number"
+              min={0}
+              value={maxCost ? String(maxCost) : ''}
+              onChange={(e) => setMaxCost(e.target.value ? Number(e.target.value) : undefined)}
+            />
+          </div>
+
+          <div className="w-full sm:w-40 flex gap-2">
+            <Input
+              placeholder="Zipcode"
+              value={zipcode}
+              onChange={(e) => setZipcode(e.target.value)}
+            />
+            <Input
+              placeholder="Distance km"
+              type="number"
+              min={1}
+              value={distanceKm ? String(distanceKm) : ''}
+              onChange={(e) => setDistanceKm(e.target.value ? Number(e.target.value) : undefined)}
+            />
+          </div>
+
+          <div className="w-full sm:w-auto flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedTopics([]);
+                setSortBy('');
+                setMinRating(undefined);
+                setMaxCost(undefined);
+                setZipcode('');
+                setDistanceKm(undefined);
+                setCurrentPage(1);
+                loadCommunities();
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
