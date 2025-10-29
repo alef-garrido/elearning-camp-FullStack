@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ApiClient } from "@/lib/api";
+import { Community } from "@/types/api";
 
 interface PhotoUploaderProps {
   communityId: string;
   currentPhoto?: string;
-  onUploadSuccess: (photoUrl: string) => void;
+  onUploadSuccess: (community: Community) => void;
   onClose?: () => void;
 }
 
@@ -97,10 +98,12 @@ export const PhotoUploader = ({
       const res = await ApiClient.uploadCommunityPhoto(communityId, selectedFile);
 
       setUploadProgress(100);
-      const publicUrl = res.data;
+      const updatedCommunity = res.data;
       toast.success('Photo uploaded successfully!');
-      setPreview(publicUrl);
-      onUploadSuccess(publicUrl);
+      // Construct the full photo URL using the backend URL
+      const photoUrl = `${import.meta.env.VITE_BACKEND_URL}/uploads/${updatedCommunity.photo}`;
+      setPreview(photoUrl);
+      onUploadSuccess(updatedCommunity);
       onClose?.();
     } catch (error: any) {
       console.error('Upload error:', error);

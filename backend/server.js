@@ -42,7 +42,24 @@ const corsOptions = {
 };
 
 // Apply CORS middleware
-app.use(cors(corsOptions));
+// In development allow any origin to avoid preflight/CORS mismatches from misc dev hosts
+if (process.env.NODE_ENV === 'development') {
+  // Set permissive CORS headers and respond to preflight OPTIONS without using a path pattern
+  app.use((req, res, next) => {
+    const origin = req.headers.origin || '*';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+  app.use(cors({ origin: true, credentials: true }));
+} else {
+  app.use(cors(corsOptions));
+}
 
 // Body parser with higher limit and strict mode
 app.use(express.json({ 
@@ -90,6 +107,11 @@ app.use(limiter);
 app.use(hpp());
 
 // Set static folder
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Mount routers - order matters for nested routes

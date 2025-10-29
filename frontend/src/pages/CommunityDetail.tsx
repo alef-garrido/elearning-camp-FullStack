@@ -115,7 +115,7 @@ const CommunityDetail = () => {
         <div className="aspect-[21/9] sm:aspect-[21/6] bg-gradient-primary relative overflow-hidden rounded-xl mb-6 sm:mb-8 group">
           {community.photo ? (
             <img 
-              src={community.photo} 
+              src={community.photo}
               alt={community.name}
               className="w-full h-full object-cover"
             />
@@ -146,8 +146,8 @@ const CommunityDetail = () => {
             <PhotoUploader
               communityId={id!}
               currentPhoto={community.photo}
-              onUploadSuccess={(photoUrl) => {
-                setCommunity({ ...community, photo: photoUrl });
+              onUploadSuccess={(updatedCommunity) => {
+                setCommunity(updatedCommunity);
                 setShowPhotoUploader(false);
               }}
               onClose={() => setShowPhotoUploader(false)}
