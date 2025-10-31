@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Course, Community } from "@/types/api";
 import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const skillColors = {
   beginner: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -21,10 +22,23 @@ const CourseDetail = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [community, setCommunity] = useState<Community | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadCourseData();
   }, [id]);
+
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem('auth_user') || 'null');
+      if (user && course) {
+        setIsOwner(user.role === 'admin' || user._id === course.user);
+      }
+    } catch (e) {
+      setIsOwner(false);
+    }
+  }, [course]);
 
   const loadCourseData = async () => {
     try {
@@ -75,12 +89,37 @@ const CourseDetail = () => {
       <Navbar />
       
       <div className="container py-6 sm:py-8 px-4">
-        <Link to="/courses">
-          <Button variant="ghost" className="mb-4 sm:mb-6">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Courses
-          </Button>
-        </Link>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <Link to="/courses">
+            <Button variant="ghost">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Courses
+            </Button>
+          </Link>
+          {isOwner && (
+            <div className="flex items-center gap-2">
+              <Link to={`/courses/${id}/edit`}>
+                <Button size="sm" variant="outline">Edit</Button>
+              </Link>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={async () => {
+                  if (!confirm('Delete this course?')) return;
+                  try {
+                    await ApiClient.deleteCourse(id!);
+                    toast.success('Course deleted');
+                    navigate('/courses');
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to delete course');
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          )}
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Main Content */}

@@ -1,14 +1,38 @@
-import { Star, MapPin, Globe } from "lucide-react";
+import { Star, MapPin, Globe, Edit3, Trash2 } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Community } from "@/types/api";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { ApiClient } from "@/lib/api";
+import { toast } from "sonner";
+import { Button } from "./ui/button";
 
 interface CommunityCardProps {
   community: Community;
 }
 
 export const CommunityCard = ({ community }: CommunityCardProps) => {
+  const navigate = useNavigate();
+  const currentUser = (() => {
+    try { return JSON.parse(localStorage.getItem('auth_user') || 'null'); } catch { return null; }
+  })();
+  const isOwner = currentUser && (currentUser.role === 'admin' || currentUser._id === community.user);
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!confirm(`Delete community "${community.name}"? This will remove all associated courses.`)) return;
+    try {
+      await ApiClient.deleteCommunity(community._id);
+      toast.success('Community deleted');
+      navigate('/communities');
+      // quick full refresh to update lists
+      setTimeout(() => window.location.reload(), 250);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete community');
+    }
+  };
   return (
     <Link to={`/communities/${community._id}`}>
       <Card className="overflow-hidden hover:shadow-medium transition-all duration-300 group cursor-pointer bg-gradient-card border-border/50">
@@ -29,6 +53,18 @@ export const CommunityCard = ({ community }: CommunityCardProps) => {
         </div>
         
         <div className="p-4 sm:p-6">
+          {isOwner && (
+            <div className="absolute top-3 right-3 flex gap-2 z-10">
+              <Link to={`/communities/${community._id}/edit`} onClick={(e) => e.stopPropagation()}>
+                <Button size="sm" variant="ghost" className="p-2">
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Button size="sm" variant="ghost" className="p-2" onClick={handleDelete}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          )}
           <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
             <h3 className="text-lg sm:text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2 flex-1">
               {community.name}

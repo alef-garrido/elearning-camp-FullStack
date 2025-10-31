@@ -1,8 +1,12 @@
-import { Clock, DollarSign, Award } from "lucide-react";
+import { Clock, DollarSign, Award, Edit3, Trash2 } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Course } from "@/types/api";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { ApiClient } from "@/lib/api";
+import { toast } from "sonner";
+import { Button } from "./ui/button";
 
 interface CourseCardProps {
   course: Course;
@@ -15,6 +19,25 @@ const skillColors = {
 };
 
 export const CourseCard = ({ course }: CourseCardProps) => {
+  const navigate = useNavigate();
+  const currentUser = (() => {
+    try { return JSON.parse(localStorage.getItem('auth_user') || 'null'); } catch { return null; }
+  })();
+  const isOwner = currentUser && (currentUser.role === 'admin' || currentUser._id === course.user);
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!confirm(`Delete course "${course.title}"?`)) return;
+    try {
+      await ApiClient.deleteCourse(course._id);
+      toast.success('Course deleted');
+      navigate('/courses');
+      setTimeout(() => window.location.reload(), 250);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete course');
+    }
+  };
   return (
     <Link to={`/courses/${course._id}`}>
       <Card className="overflow-hidden hover:shadow-medium transition-all duration-300 group cursor-pointer bg-gradient-card border-border/50">
@@ -25,6 +48,18 @@ export const CourseCard = ({ course }: CourseCardProps) => {
         </div>
         
         <div className="p-4 sm:p-6">
+          {isOwner && (
+            <div className="absolute top-3 right-3 flex gap-2 z-10">
+              <Link to={`/courses/${course._id}/edit`} onClick={(e) => e.stopPropagation()}>
+                <Button size="sm" variant="ghost" className="p-2">
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Button size="sm" variant="ghost" className="p-2" onClick={handleDelete}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          )}
           <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
             <h3 className="text-base sm:text-lg font-semibold group-hover:text-primary transition-colors line-clamp-2 flex-1">
               {course.title}

@@ -104,12 +104,37 @@ const CommunityDetail = () => {
       <Navbar />
       
       <div className="container py-6 sm:py-8 px-4">
-        <Link to="/communities">
-          <Button variant="ghost" className="mb-4 sm:mb-6">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Communities
-          </Button>
-        </Link>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <Link to="/communities">
+            <Button variant="ghost">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Communities
+            </Button>
+          </Link>
+          {isOwner && (
+            <div className="flex items-center gap-2">
+              <Link to={`/communities/${id}/edit`}>
+                <Button size="sm" variant="outline">Edit</Button>
+              </Link>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={async () => {
+                  if (!confirm('Delete this community and all associated courses?')) return;
+                  try {
+                    await ApiClient.deleteCommunity(id!);
+                    toast.success('Community deleted');
+                    window.location.href = '/communities';
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to delete community');
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          )}
+        </div>
 
         {/* Hero Section */}
         <div className="aspect-[21/9] sm:aspect-[21/6] bg-gradient-primary relative overflow-hidden rounded-xl mb-6 sm:mb-8 group">
