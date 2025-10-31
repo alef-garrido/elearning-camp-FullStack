@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Communities from "./pages/Communities";
+import CreateCommunity from "./pages/CreateCommunity";
 import CommunityDetail from "./pages/CommunityDetail";
 import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/communities" element={<Communities />} />
+          <Route path="/communities/create" element={<CreateCommunity />} />
           <Route path="/communities/:id" element={<CommunityDetail />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:id" element={<CourseDetail />} />

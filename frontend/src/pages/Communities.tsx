@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { CommunityCard } from "@/components/CommunityCard";
@@ -16,6 +17,7 @@ import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
 
 const Communities = () => {
+  const navigate = useNavigate();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -90,7 +92,10 @@ const Communities = () => {
             </p>
           </div>
           
-          <Button className="bg-gradient-primary hover:opacity-90 w-full md:w-auto">
+          <Button 
+            className="bg-gradient-primary hover:opacity-90 w-full md:w-auto"
+            onClick={() => navigate('/communities/create')}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create Community
           </Button>
