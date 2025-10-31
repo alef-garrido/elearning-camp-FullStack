@@ -9,6 +9,7 @@ import Communities from "./pages/Communities";
 import CreateCommunity from "./pages/CreateCommunity";
 import CommunityDetail from "./pages/CommunityDetail";
 import Courses from "./pages/Courses";
+import CreateCourse from "./pages/CreateCourse";
 import CourseDetail from "./pages/CourseDetail";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/communities/create" element={<CreateCommunity />} />
           <Route path="/communities/:id" element={<CommunityDetail />} />
           <Route path="/courses" element={<Courses />} />
+          <Route path="/courses/create" element={<CreateCourse />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/dashboard" element={<Dashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
