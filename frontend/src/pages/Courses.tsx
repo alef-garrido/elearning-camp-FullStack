@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Search, Filter, DollarSign } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { CourseCard } from "@/components/CourseCard";
@@ -16,6 +17,15 @@ import {
 } from "@/components/ui/select";
 
 const Courses = () => {
+  const navigate = useNavigate();
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('auth_user') || 'null');
+    } catch (e) {
+      return null;
+    }
+  })();
+  const role = currentUser?.role;
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -70,10 +80,17 @@ const Courses = () => {
             </p>
           </div>
           
-          <Button className="bg-gradient-primary hover:opacity-90 w-full md:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Course
-          </Button>
+          {(role === 'publisher' || role === 'admin') ? (
+            <Button 
+              className="bg-gradient-primary hover:opacity-90 w-full md:w-auto"
+              onClick={() => navigate('/courses/create')}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Course
+            </Button>
+          ) : (
+            <div className="text-sm text-muted-foreground">Sign in as a publisher to create courses</div>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">

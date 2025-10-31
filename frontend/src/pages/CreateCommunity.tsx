@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,19 @@ const TOPICS = [
 
 const CreateCommunity = () => {
   const navigate = useNavigate();
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem('auth_user') || 'null');
+      const role = user?.role;
+      if (!(role === 'publisher' || role === 'admin')) {
+        toast.error('You are not authorized to create communities');
+        navigate('/communities');
+      }
+    } catch (e) {
+      // ignore parse errors and redirect to auth
+      navigate('/auth');
+    }
+  }, [navigate]);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",

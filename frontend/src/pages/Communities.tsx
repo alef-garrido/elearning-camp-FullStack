@@ -18,6 +18,14 @@ import { toast } from "sonner";
 
 const Communities = () => {
   const navigate = useNavigate();
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('auth_user') || 'null');
+    } catch (e) {
+      return null;
+    }
+  })();
+  const role = currentUser?.role;
   const [communities, setCommunities] = useState<Community[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,13 +100,17 @@ const Communities = () => {
             </p>
           </div>
           
-          <Button 
-            className="bg-gradient-primary hover:opacity-90 w-full md:w-auto"
-            onClick={() => navigate('/communities/create')}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Community
-          </Button>
+          {(role === 'publisher' || role === 'admin') ? (
+            <Button 
+              className="bg-gradient-primary hover:opacity-90 w-full md:w-auto"
+              onClick={() => navigate('/communities/create')}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Community
+            </Button>
+          ) : (
+            <div className="text-sm text-muted-foreground">Sign in as a publisher to create communities</div>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6 sm:mb-8">

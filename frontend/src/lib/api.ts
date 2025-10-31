@@ -194,6 +194,18 @@ export class ApiClient {
   }
 
   static async createCourse(input: CreateCourseInput): Promise<ApiResponse<Course>> {
+    // If a communityId is provided, use the nested route so the backend
+    // can infer the community from the URL (this route also enforces
+    // that the user is authorized to add courses to that community).
+    const { communityId, ...payload } = input as any;
+    if (communityId) {
+      return this.request(`/communities/${communityId}/courses`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    }
+
+    // Fallback: post to top-level /courses (include community in body if present)
     return this.request('/courses', {
       method: 'POST',
       body: JSON.stringify(input),
