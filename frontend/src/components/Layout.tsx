@@ -1,8 +1,9 @@
 
 import { Outlet } from "react-router-dom";
 import { Navbar } from "./Navbar";
+import { memo } from "react";
 
-export const Layout = () => {
+const LayoutComponent = () => {
   return (
     <>
       <Navbar />
@@ -12,3 +13,5 @@ export const Layout = () => {
     </>
   );
 };
+
+export const Layout = memo(LayoutComponent);

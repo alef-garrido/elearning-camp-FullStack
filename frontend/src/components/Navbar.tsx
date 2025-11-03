@@ -10,9 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 
-export const Navbar = () => {
+const NavbarComponent = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { isAuthenticated, logout } = useAuth();
@@ -20,10 +20,10 @@ export const Navbar = () => {
   const canCreateCourse = useFeatureFlag('course-creation');
   const canManageUsers = useFeatureFlag('user-management');
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     navigate('/auth');
-  };
+  }, [logout, navigate]);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -187,3 +187,5 @@ export const Navbar = () => {
     </nav>
   );
 };
+
+export const Navbar = memo(NavbarComponent);

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { ApiClient } from '@/lib/api';
 import { User } from '@/types/api';
 
@@ -39,24 +39,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [checkUserLoggedIn]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await ApiClient.logout();
     setUser(null);
     window.dispatchEvent(new Event('authStateChange'));
-  };
+  }, []);
 
   const isPublisher = user?.role === 'publisher';
   const isAdmin = user?.role === 'admin';
   const isAuthenticated = !!user;
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     isLoading,
     isPublisher,
     isAdmin,
     isAuthenticated,
-    logout,
-  };
+    logout
+  }), [user, isLoading, isPublisher, isAdmin, isAuthenticated]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

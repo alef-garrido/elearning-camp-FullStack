@@ -49,11 +49,18 @@ export const CourseCard = ({ course }: CourseCardProps) => {
         <div className="p-4 sm:p-6">
           {isOwner && (
             <div className="absolute top-3 right-3 flex gap-2 z-10">
-              <Link to={`/courses/${course._id}/edit`} onClick={(e) => e.stopPropagation()}>
-                <Button size="sm" variant="ghost" className="p-2">
-                  <Edit3 className="h-4 w-4" />
-                </Button>
-              </Link>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="p-2" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  navigate(`/courses/${course._id}/edit`);
+                }}
+              >
+                <Edit3 className="h-4 w-4" />
+              </Button>
               <Button size="sm" variant="ghost" className="p-2" onClick={handleDelete}>
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>

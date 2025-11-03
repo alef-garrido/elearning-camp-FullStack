@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { BookOpen, Award, Star, TrendingUp, Image as ImageIcon, Pencil, Trash2, Users, Plus } from "lucide-react";
-import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -98,7 +97,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       
       <div className="container py-8 sm:py-12 px-4">
         {isLoading || isAuthLoading ? (

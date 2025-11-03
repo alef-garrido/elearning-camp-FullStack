@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -90,8 +89,6 @@ const CreateCommunity = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      
       <div className="container py-8 sm:py-12 px-4">
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">Create New Community</h1>
