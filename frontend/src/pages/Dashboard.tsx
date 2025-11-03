@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { BookOpen, Award, Star, TrendingUp, Image as ImageIcon, Pencil, Trash2, Users } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { BookOpen, Award, Star, TrendingUp, Image as ImageIcon, Pencil, Trash2, Users, Plus } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -9,43 +9,67 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiClient } from "@/lib/api";
-import { User } from "@/types/api";
+import { User, Community, Course } from "@/types/api";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const canManageUsers = useFeatureFlag('user-management');
+  const canCreateCommunity = useFeatureFlag('community-creation');
+  const canCreateCourse = useFeatureFlag('course-creation');
+
   const [users, setUsers] = useState<User[]>([]);
+  const [myCommunities, setMyCommunities] = useState<Community[]>([]);
+  const [myCourses, setMyCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        if (!localStorage.getItem('auth_token')) {
-          navigate('/auth');
-          return;
-        }
+    const fetchData = async () => {
+      if (!user) return;
 
-        const response = await ApiClient.getCurrentUser();
-        setUser(response.data);
-        
-        // If user is admin, fetch all users
-        if (response.data.role === 'admin') {
+      if (canManageUsers) {
+        try {
           const usersResponse = await ApiClient.getUsers();
           setUsers(usersResponse.data);
+        } catch (error: any) {
+          toast.error(error.message || "Failed to load users");
         }
-      } catch (error: any) {
-        toast.error(error.message || "Failed to load user data");
-        navigate('/auth');
-      } finally {
-        setIsLoading(false);
       }
+
+      if (canCreateCommunity) {
+        try {
+          const communitiesResponse = await ApiClient.getCommunities({ user: user._id });
+          setMyCommunities(communitiesResponse.data);
+        } catch (error: any) {
+          toast.error(error.message || "Failed to load communities");
+        }
+      }
+
+      if (canCreateCourse) {
+        try {
+          const coursesResponse = await ApiClient.getCourses(); // This will get all courses, we need to filter by user
+          setMyCourses(coursesResponse.data.filter(course => course.user === user._id));
+        } catch (error: any) {
+          toast.error(error.message || "Failed to load courses");
+        }
+      }
+
+      setIsLoading(false);
     };
 
-    fetchUserData();
-  }, [navigate]);
+    if (!isAuthLoading) {
+      if (!user) {
+        navigate('/auth');
+      } else {
+        fetchData();
+      }
+    }
+  }, [user, canManageUsers, canCreateCommunity, canCreateCourse, isAuthLoading, navigate]);
 
   const handleUserUpdate = async (userId: string, updates: { name?: string; email?: string; }) => {
     try {
@@ -77,7 +101,7 @@ const Dashboard = () => {
       <Navbar />
       
       <div className="container py-8 sm:py-12 px-4">
-        {isLoading ? (
+        {isLoading || isAuthLoading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <p className="text-lg text-muted-foreground">Loading...</p>
           </div>
@@ -122,8 +146,76 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
+              {/* Publisher: My Communities Section */}
+              {canCreateCommunity && (
+                <Card className="shadow-soft border-border/50">
+                  <CardHeader className="p-4 sm:p-6 flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      My Communities
+                    </CardTitle>
+                    <Link to="/communities/create">
+                      <Button variant="outline" size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Community
+                      </Button>
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                    {myCommunities.length > 0 ? (
+                      <ul className="divide-y divide-border">
+                        {myCommunities.map(community => (
+                          <li key={community._id} className="py-3 flex items-center justify-between">
+                            <Link to={`/communities/${community._id}`} className="font-medium hover:underline">
+                              {community.name}
+                            </Link>
+                            <span className="text-sm text-muted-foreground">{community.courses?.length || 0} Courses</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted-foreground">You have not created any communities yet.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Publisher: My Courses Section */}
+              {canCreateCourse && (
+                <Card className="shadow-soft border-border/50">
+                  <CardHeader className="p-4 sm:p-6 flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                      <Award className="h-5 w-5" />
+                      My Courses
+                    </CardTitle>
+                    <Link to="/courses/create">
+                      <Button variant="outline" size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Course
+                      </Button>
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                    {myCourses.length > 0 ? (
+                      <ul className="divide-y divide-border">
+                        {myCourses.map(course => (
+                          <li key={course._id} className="py-3 flex items-center justify-between">
+                            <Link to={`/courses/${course._id}`} className="font-medium hover:underline">
+                              {course.title}
+                            </Link>
+                            <span className="text-sm text-muted-foreground">{course.minimumSkill}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted-foreground">You have not created any courses yet.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Admin: User Management Section */}
-              {user.role === 'admin' && (
+              {canManageUsers && (
                 <Card className="shadow-soft border-border/50">
                   <CardHeader className="p-4 sm:p-6">
                     <div className="flex items-center justify-between">

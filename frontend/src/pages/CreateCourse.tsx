@@ -17,24 +17,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { Community, CreateCourseInput } from "@/types/api";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 
 const SKILL_LEVELS = ["beginner", "intermediate", "advanced"];
 
 const CreateCourse = () => {
   const navigate = useNavigate();
   const { communityId } = useParams(); // Optional: If coming from a community page
+  const canCreateCourse = useFeatureFlag('course-creation');
+
   useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem('auth_user') || 'null');
-      const role = user?.role;
-      if (!(role === 'publisher' || role === 'admin')) {
-        toast.error('You are not authorized to create courses');
-        navigate('/courses');
-      }
-    } catch (e) {
-      navigate('/auth');
+    if (!canCreateCourse) {
+      toast.error("You are not authorized to create courses");
+      navigate("/courses");
     }
-  }, [navigate]);
+  }, [canCreateCourse, navigate]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [formData, setFormData] = useState<CreateCourseInput>({

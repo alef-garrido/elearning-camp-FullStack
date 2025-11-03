@@ -13,8 +13,11 @@ import CreateCourse from "./pages/CreateCourse";
 import CourseDetail from "./pages/CourseDetail";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import { Layout } from "./components/Layout";
 
 const queryClient = new QueryClient();
+
+import MyCommunities from "./pages/MyCommunities";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -23,17 +26,23 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/communities" element={<Communities />} />
+            <Route path="/communities/:id" element={<CommunityDetail />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/:id" element={<CourseDetail />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+
+            {/* Publisher and Admin routes */}
+            <Route path="/my-communities" element={<MyCommunities />} />
+            <Route path="/communities/create" element={<CreateCommunity />} />
+            <Route path="/courses/create" element={<CreateCourse />} />
+
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Route>
           <Route path="/auth" element={<Auth />} />
-          <Route path="/communities" element={<Communities />} />
-          <Route path="/communities/create" element={<CreateCommunity />} />
-          <Route path="/communities/:id" element={<CommunityDetail />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/courses/create" element={<CreateCourse />} />
-          <Route path="/courses/:id" element={<CourseDetail />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

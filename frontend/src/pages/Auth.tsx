@@ -35,12 +35,8 @@ const Auth = () => {
     const password = formData.get("password") as string;
 
     try {
-      const response: any = await ApiClient.login({ email, password });
-      localStorage.setItem('auth_token', response.token);
-      // Persist current user info for frontend permission checks
-      if (response.data) {
-        localStorage.setItem('auth_user', JSON.stringify(response.data));
-      }
+      await ApiClient.login({ email, password });
+      window.dispatchEvent(new Event('authStateChange'));
       toast.success("Welcome back!");
       navigate("/dashboard");
     } catch (error: any) {
@@ -61,11 +57,8 @@ const Auth = () => {
     const role = (formData.get("role") as 'user' | 'publisher') || 'user';
 
     try {
-      const response: any = await ApiClient.register({ name, email, password, role });
-      localStorage.setItem('auth_token', response.token);
-      if (response.data) {
-        localStorage.setItem('auth_user', JSON.stringify(response.data));
-      }
+      await ApiClient.register({ name, email, password, role });
+      window.dispatchEvent(new Event('authStateChange'));
       toast.success("Account created successfully!");
       navigate("/dashboard");
     } catch (error: any) {
@@ -113,11 +106,8 @@ const Auth = () => {
     }
 
     try {
-      const response = await ApiClient.resetPassword({ resetToken, password });
-      localStorage.setItem('auth_token', response.token);
-      if (response.data) {
-        localStorage.setItem('auth_user', JSON.stringify(response.data));
-      }
+      await ApiClient.resetPassword({ resetToken, password });
+      window.dispatchEvent(new Event('authStateChange'));
       toast.success("Password reset successful!");
       navigate("/dashboard");
     } catch (error: any) {

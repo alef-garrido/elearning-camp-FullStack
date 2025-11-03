@@ -28,15 +28,10 @@ class ApiError extends Error {
 }
 
 export class ApiClient {
-  private static getAuthToken(): string | null {
-    return localStorage.getItem('auth_token');
-  }
-
   private static async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const token = this.getAuthToken();
     const defaultHeaders: HeadersInit = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
@@ -53,10 +48,6 @@ export class ApiClient {
       ...options.headers,
     };
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
@@ -65,6 +56,9 @@ export class ApiClient {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        window.dispatchEvent(new Event('authStateChange'));
+      }
       const errorBody = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
       const errorMessage = errorBody.error || errorBody.message || `Request failed with status ${response.status}`;
       throw new ApiError(errorMessage, response.status);

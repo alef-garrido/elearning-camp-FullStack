@@ -10,6 +10,7 @@ import { Course, Community } from "@/types/api";
 import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
 
 const skillColors = {
   beginner: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -19,6 +20,7 @@ const skillColors = {
 
 const CourseDetail = () => {
   const { id } = useParams();
+  const { user, isAdmin } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [community, setCommunity] = useState<Community | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,15 +32,10 @@ const CourseDetail = () => {
   }, [id]);
 
   useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem('auth_user') || 'null');
-      if (user && course) {
-        setIsOwner(user.role === 'admin' || user._id === course.user);
-      }
-    } catch (e) {
-      setIsOwner(false);
+    if (user && course) {
+      setIsOwner(isAdmin || user._id === course.user);
     }
-  }, [course]);
+  }, [user, course, isAdmin]);
 
   const loadCourseData = async () => {
     try {

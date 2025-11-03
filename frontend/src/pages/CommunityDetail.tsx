@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Star, MapPin, Globe, Mail, Phone, ArrowLeft, Users, Calendar, CreditCard, Camera } from "lucide-react";
-import { Navbar } from "@/components/Navbar";
+
 import { Button } from "@/components/ui/button";
+import { Navbar } from "@/components/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -12,10 +13,17 @@ import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { CourseCard } from "@/components/CourseCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/use-auth";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const CommunityDetail = () => {
   const { id } = useParams();
+  const { user } = useAuth();
+  const canCreateReview = useFeatureFlag('review-creation');
   const [community, setCommunity] = useState<Community | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -26,23 +34,19 @@ const CommunityDetail = () => {
   const [reviewsTotalPages, setReviewsPagination] = useState(1);
   const [showPhotoUploader, setShowPhotoUploader] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
   const coursesPerPage = 6;
   const reviewsPerPage = 5;
 
   useEffect(() => {
     loadCommunityData();
-    checkCommunityOwnership();
   }, [id, coursesPage, reviewsPage]);
 
-  const checkCommunityOwnership = async () => {
-    try {
-      const currentUser = await ApiClient.getCurrentUser();
-      setIsOwner(currentUser.data.role === 'admin' || 
-                (community?.user === currentUser.data._id));
-    } catch (error) {
-      setIsOwner(false);
+  useEffect(() => {
+    if (user && community) {
+      setIsOwner(user.role === 'admin' || user._id === community.user);
     }
-  };
+  }, [user, community]);
 
   const loadCommunityData = async () => {
     try {
@@ -73,6 +77,23 @@ const CommunityDetail = () => {
       setReviews([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const title = formData.get('title') as string;
+    const text = formData.get('text') as string;
+    const rating = parseInt(formData.get('rating') as string, 10);
+
+    try {
+      await ApiClient.createReview(id!, { title, text, rating });
+      toast.success('Review submitted successfully');
+      setShowReviewForm(false);
+      loadCommunityData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to submit review');
     }
   };
 
@@ -281,7 +302,36 @@ const CommunityDetail = () => {
 
             {/* Reviews */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Reviews</h2>
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-semibold">Reviews</h2>
+                {canCreateReview && (
+                  <Dialog open={showReviewForm} onOpenChange={setShowReviewForm}>
+                    <DialogTrigger asChild>
+                      <Button>Write a Review</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Write a Review</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleReviewSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="review-title">Title</Label>
+                          <Input id="review-title" name="title" required />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="review-text">Review</Label>
+                          <Textarea id="review-text" name="text" required />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="review-rating">Rating</Label>
+                          <Input id="review-rating" name="rating" type="number" min="1" max="5" required />
+                        </div>
+                        <Button type="submit">Submit Review</Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
               {reviews.length === 0 ? (
                 <p className="text-muted-foreground">No reviews yet</p>
               ) : (

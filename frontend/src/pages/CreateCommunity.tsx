@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 
 const TOPICS = [
   "Web Development",
@@ -37,19 +38,15 @@ const TOPICS = [
 
 const CreateCommunity = () => {
   const navigate = useNavigate();
+  const canCreateCommunity = useFeatureFlag('community-creation');
+
   useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem('auth_user') || 'null');
-      const role = user?.role;
-      if (!(role === 'publisher' || role === 'admin')) {
-        toast.error('You are not authorized to create communities');
-        navigate('/communities');
-      }
-    } catch (e) {
-      // ignore parse errors and redirect to auth
-      navigate('/auth');
+    if (!canCreateCommunity) {
+      toast.error("You are not authorized to create communities");
+      navigate("/communities");
     }
-  }, [navigate]);
+  }, [canCreateCommunity, navigate]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",

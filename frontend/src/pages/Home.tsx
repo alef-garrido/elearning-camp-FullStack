@@ -1,13 +1,10 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, Users, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Navbar } from "@/components/Navbar";
 
 const Home = () => {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-hero opacity-10"></div>

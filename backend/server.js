@@ -16,7 +16,6 @@ const connectDB = require('./config/db');
 // Load env vars
 dotenv.config({ path: './config/config.env' });
 
-
 // Connect to database
 connectDB();
 
@@ -29,37 +28,30 @@ const reviews = require('./routes/reviews');
 
 const app = express();
 
-// Configure CORS options
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'development' 
-    ? ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173']
-    : process.env.FRONTEND_URL,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  optionsSuccessStatus: 200,
-  preflightContinue: false
-};
-
-// Apply CORS middleware
-// In development allow any origin to avoid preflight/CORS mismatches from misc dev hosts
-if (process.env.NODE_ENV === 'development') {
-  // Set permissive CORS headers and respond to preflight OPTIONS without using a path pattern
-  app.use((req, res, next) => {
-    const origin = req.headers.origin || '*';
+// Configure CORS - Simple configuration for development
+app.use((req, res, next) => {
+  const allowedOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'];
+  const origin = req.headers.origin;
+  
+  // Allow specific origins in development
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-    next();
-  });
-  app.use(cors({ origin: true, credentials: true }));
-} else {
-  app.use(cors(corsOptions));
-}
+  }
+
+  // Set Vary header to avoid caching issues
+  res.setHeader('Vary', 'Origin');
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // Body parser with higher limit and strict mode
 app.use(express.json({ 
@@ -90,28 +82,69 @@ app.use(fileupload({
 // Sanitize data - after parsing but before route handling
 app.use(mongoSanitize);
 
-// Set security headers
-app.use(helmet());
+// Configure security headers based on environment
+if (process.env.NODE_ENV === 'development') {
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          connectSrc: ["'self'", "http://localhost:*", "http://127.0.0.1:*"],
+          imgSrc: ["'self'", "data:", "https:"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+          blockAllMixedContent: []
+        }
+      },
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: false,
+      crossOriginOpenerPolicy: false
+    })
+  );
+} else {
+  // Production security configuration
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          connectSrc: ["'self'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" }
+    })
+  );
+}
 
 // Prevent XSS attacks
 app.use(xss());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 mins
-  max: 100
+// Create separate rate limiters for auth and general routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // 30 requests per windowMs for auth routes
+  message: 'Too many authentication attempts, please try again later'
 });
-app.use(limiter);
+
+const apiLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 mins
+  max: 100 // 100 requests per windowMs for other routes
+});
+
+// Apply rate limiting - auth routes get a separate limit
+app.use('/api/v1/auth', authLimiter);
+app.use('/api/v1', apiLimiter);
 
 // Prevent http param pollution
 app.use(hpp());
 
 // Set static folder
-app.use((req, res, next) => {
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  next();
-});
-
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Mount routers - order matters for nested routes
@@ -124,9 +157,7 @@ app.use('/api/v1/reviews', reviews);
 // Error handler middleware - should be last
 app.use(errorHandler);
 
-
 const PORT = process.env.PORT || 5000;
-
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
@@ -148,4 +179,3 @@ process.on('unhandledRejection', (err, promise) => {
     process.exit(1);
   });
 });
-

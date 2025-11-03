@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, LogOut, User, Menu } from "lucide-react";
+import { BookOpen, LogOut, User, Menu, Plus, GraduationCap } from "lucide-react";
 import { Button } from "./ui/button";
+import { useAuth } from "../hooks/use-auth";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,12 +14,14 @@ import { useState } from "react";
 
 export const Navbar = () => {
   const navigate = useNavigate();
-  const isAuthenticated = !!localStorage.getItem('auth_token');
   const [open, setOpen] = useState(false);
+  const { isAuthenticated, logout } = useAuth();
+  const canCreateCommunity = useFeatureFlag('community-creation');
+  const canCreateCourse = useFeatureFlag('course-creation');
+  const canManageUsers = useFeatureFlag('user-management');
 
-  const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+  const handleLogout = async () => {
+    await logout();
     navigate('/auth');
   };
 
@@ -52,6 +56,32 @@ export const Navbar = () => {
                   <User className="mr-2 h-4 w-4" />
                   Dashboard
                 </DropdownMenuItem>
+                {canManageUsers && (
+                  <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
+                    <User className="mr-2 h-4 w-4" />
+                    Admin Dashboard
+                  </DropdownMenuItem>
+                )}
+                {(canCreateCommunity || canCreateCourse) && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate('/my-communities')}>
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      My Communities
+                    </DropdownMenuItem>
+                    {canCreateCommunity && (
+                      <DropdownMenuItem onClick={() => navigate('/communities/create')}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Community
+                      </DropdownMenuItem>
+                    )}
+                    {canCreateCourse && (
+                      <DropdownMenuItem onClick={() => navigate('/courses/create')}>
+                        <GraduationCap className="mr-2 h-4 w-4" />
+                        Create Course
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
@@ -98,6 +128,35 @@ export const Navbar = () => {
                   >
                     Dashboard
                   </Link>
+                  {(canCreateCommunity || canCreateCourse) && (
+                    <>
+                      <Link 
+                        to="/my-communities" 
+                        className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+                        onClick={() => setOpen(false)}
+                      >
+                        My Communities
+                      </Link>
+                      {canCreateCommunity && (
+                        <Link 
+                          to="/communities/create" 
+                          className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+                          onClick={() => setOpen(false)}
+                        >
+                          Create Community
+                        </Link>
+                      )}
+                      {canCreateCourse && (
+                        <Link 
+                          to="/courses/create" 
+                          className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+                          onClick={() => setOpen(false)}
+                        >
+                          Create Course
+                        </Link>
+                      )}
+                    </>
+                  )}
                   <Button 
                     variant="outline" 
                     className="justify-start" 

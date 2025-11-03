@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Course } from "@/types/api";
 import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Select,
   SelectContent,
@@ -18,14 +19,8 @@ import {
 
 const Courses = () => {
   const navigate = useNavigate();
-  const currentUser = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('auth_user') || 'null');
-    } catch (e) {
-      return null;
-    }
-  })();
-  const role = currentUser?.role;
+  const { isPublisher, isAdmin } = useAuth();
+  const canCreate = isPublisher || isAdmin;
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,7 +75,7 @@ const Courses = () => {
             </p>
           </div>
           
-          {(role === 'publisher' || role === 'admin') ? (
+          {canCreate ? (
             <Button 
               className="bg-gradient-primary hover:opacity-90 w-full md:w-auto"
               onClick={() => navigate('/courses/create')}

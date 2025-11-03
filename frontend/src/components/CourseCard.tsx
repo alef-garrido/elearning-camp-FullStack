@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
+import { useAuth } from "@/hooks/use-auth";
 
 interface CourseCardProps {
   course: Course;
@@ -20,10 +21,8 @@ const skillColors = {
 
 export const CourseCard = ({ course }: CourseCardProps) => {
   const navigate = useNavigate();
-  const currentUser = (() => {
-    try { return JSON.parse(localStorage.getItem('auth_user') || 'null'); } catch { return null; }
-  })();
-  const isOwner = currentUser && (currentUser.role === 'admin' || currentUser._id === course.user);
+  const { user, isAdmin } = useAuth();
+  const isOwner = user && (isAdmin || user._id === course.user);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();

@@ -36,6 +36,8 @@ export interface Community {
   averageRating?: number;
   averageCost?: number;
   user: string;
+  // Optional populated courses array (present when backend populates or frontend joins data)
+  courses?: Course[];
   createdAt: string;
 }
 
@@ -147,4 +149,5 @@ export interface CommunityQueryParams extends PaginationParams {
   distance?: number;
   averageCost?: number;
   averageRating?: number;
+  user?: string;
 }
