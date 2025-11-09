@@ -61,7 +61,7 @@ const CourseDetail = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
+         
         <div className="container py-8 px-4">
           <div className="h-64 rounded-xl bg-muted animate-pulse mb-6" />
           <div className="h-48 rounded-xl bg-muted animate-pulse" />
@@ -73,7 +73,7 @@ const CourseDetail = () => {
   if (!course) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
+         
         <div className="container py-12 px-4 text-center">
           <p className="text-muted-foreground">Course not found</p>
         </div>
@@ -83,7 +83,7 @@ const CourseDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+       
       
       <div className="container py-6 sm:py-8 px-4">
         <div className="flex items-center justify-between mb-4 sm:mb-6">

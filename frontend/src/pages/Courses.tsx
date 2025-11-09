@@ -55,7 +55,7 @@ const Courses = () => {
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          course.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSkill = skillFilter === "all" || course.minimumSkill === skillFilter;
-    const matchesPrice = priceRange === "all" || 
+    const matchesPrice = priceRange === "all" ||
       (priceRange === "free" && course.membership === 0) ||
       (priceRange === "paid" && course.membership > 0) ||
       (priceRange === "scholarship" && course.scholarshipsAvailable);
@@ -64,8 +64,8 @@ const Courses = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      
+       
+
       <div className="container py-8 sm:py-12 px-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div>
@@ -74,9 +74,9 @@ const Courses = () => {
               Find the perfect course to advance your skills
             </p>
           </div>
-          
+
           {canCreate ? (
-            <Button 
+            <Button
               className="bg-gradient-primary hover:opacity-90 w-full md:w-auto"
               onClick={() => navigate('/courses/create')}
             >
@@ -98,7 +98,7 @@ const Courses = () => {
               className="pl-9 sm:pl-10"
             />
           </div>
-          
+
           <div className="flex gap-3">
             <Select value={skillFilter} onValueChange={setSkillFilter}>
               <SelectTrigger className="w-full sm:w-48">
@@ -145,7 +145,7 @@ const Courses = () => {
                 <CourseCard key={course._id} course={course} />
               ))}
             </div>
-            
+
             {totalPages > 1 && (
               <div className="flex justify-center mt-8">
                 <div className="flex gap-2">
