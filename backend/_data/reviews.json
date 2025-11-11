@@ -1,0 +1,26 @@
+[
+  {
+    "_id": "5d7a514b5d2c12c7449be048",
+    "title": "Great Learning Experience",
+    "text": "I learned so much from the mentorship program. The mentors are very knowledgeable and supportive.",
+    "rating": 9,
+    "user": "5d7a514b5d2c12c7449be044",
+    "community": "5d713995b721c3bb38c1f5d0"
+  },
+  {
+    "_id": "5d7a514b5d2c12c7449be049",
+    "title": "Amazing Creative Community",
+    "text": "The projects and workshops are inspiring. I've learned to create beautiful generative art!",
+    "rating": 9,
+    "user": "5d7a514b5d2c12c7449be044",
+    "community": "5d713a66ec8f2b88b8f830b8"
+  },
+  {
+    "_id": "5d7a514b5d2c12c7449be050",
+    "title": "Excellent Interview Preparation",
+    "text": "The mock interviews and feedback helped me land my dream job. Highly recommended!",
+    "rating": 10,
+    "user": "5d7a514b5d2c12c7449be044",
+    "community": "5d725a037b292f5f8ceff787"
+  }
+]

@@ -141,49 +141,71 @@ exports.getCommunitiesInRadius = asyncHandler(async (req, res, next) => {
 //@route  PUT /api/v1/communities/:id/photo
 //@access Private
 exports.communityPhotoUpload = asyncHandler(async (req, res, next) => {
-  
+  // Debug logging: capture request params and user
+  console.log('[communityPhotoUpload] called with params:', req.params);
+  try {
+    console.log('[communityPhotoUpload] authenticated user id:', req.user && req.user.id);
+  } catch (e) {
+    console.log('[communityPhotoUpload] req.user not available');
+  }
+
     const community = await Community.findById(req.params.id);
 
     if (!community) {
+      console.log(`[communityPhotoUpload] community not found: ${req.params.id}`);
       return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
     }
 
     // Make sure user is community owner
     if(community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+        console.log(`[communityPhotoUpload] unauthorized: user ${req.user.id} cannot update community ${community._id}`);
         return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this community`, 401));
     }
 
     if (!req.files) {
+      console.log('[communityPhotoUpload] no files found on request (req.files is falsy)');
       return next(new ErrorResponse(`Please upload a file`, 400));
     }
 
     const file = req.files.file;
+    console.log('[communityPhotoUpload] received file field keys:', Object.keys(req.files || {}));
 
     // Make sure the image is a photo
     if (!file.mimetype.startsWith('image')) {
+      console.log(`[communityPhotoUpload] invalid mimetype: ${file.mimetype}`);
       return next(new ErrorResponse(`Please upload an image file`, 400));
     }
 
     // Check filesize
+    const maxUpload = process.env.MAX_FILE_UPLOAD || 'unknown';
     if (file.size > process.env.MAX_FILE_UPLOAD) {
+      console.log(`[communityPhotoUpload] file too large: ${file.size} > ${process.env.MAX_FILE_UPLOAD}`);
       return next(new ErrorResponse(`Please upload an image less than ${process.env.MAX_FILE_UPLOAD}`, 400));
     }
 
     // Create custom filename
-    file.name = `photo_${community._id}${path.parse(file.name).ext}`;
+    const originalName = file.name;
+    file.name = `photo_${community._id}${path.parse(originalName).ext}`;
+    const destPath = `${process.env.FILE_UPLOAD_PATH}/${file.name}`;
+    console.log(`[communityPhotoUpload] saving file. originalName=${originalName}, newName=${file.name}, dest=${destPath}`);
 
-    file.mv(`${process.env.FILE_UPLOAD_PATH}/${file.name}`, async err => {
-      if (err) {
-        console.error(err);
-        return next(new ErrorResponse(`Problem with file upload`, 500));
-      }
+    try {
+      // Move file to upload directory
+      await file.mv(destPath);
+      console.log(`[communityPhotoUpload] file.mv successful -> ${destPath}`);
+      
+      // Update community photo in database and get updated document
+      community.photo = file.name;
+      await community.save();
 
-      await Community.findByIdAndUpdate(req.params.id, { photo: file.name });
-
+      // Return the full updated community document
       res.status(200).json({
         success: true,
-        data: file.name
+        data: community
       });
-    });
+    } catch (err) {
+      console.error('[communityPhotoUpload] File upload error:', err && err.stack ? err.stack : err);
+      return next(new ErrorResponse(`Problem with file upload`, 500));
+    }
   
 });

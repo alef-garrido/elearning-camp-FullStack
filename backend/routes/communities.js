@@ -19,13 +19,14 @@ const router = express.Router();
 
 const { protect, authorize}  = require('../middleware/auth');
 
-// Re-route into other resource routers
-router.use('/:communityId/courses', courseRouter);
-router.use('/:communityId/reviews', reviewRouter);
-
+// Photo upload route (should come before nested routes)
 router
     .route('/:id/photo')
     .put(protect, authorize('publisher', 'admin'), communityPhotoUpload);
+
+// Re-route into other resource routers
+router.use('/:communityId/courses', courseRouter);
+router.use('/:communityId/reviews', reviewRouter);
 
 router
     .route('/radius/:zipcode/:distance')

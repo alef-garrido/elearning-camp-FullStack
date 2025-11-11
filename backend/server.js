@@ -16,7 +16,6 @@ const connectDB = require('./config/db');
 // Load env vars
 dotenv.config({ path: './config/config.env' });
 
-
 // Connect to database
 connectDB();
 
@@ -29,12 +28,42 @@ const reviews = require('./routes/reviews');
 
 const app = express();
 
-app.use(cors({
- origin: process.env.FRONTEND_URL // Permitir solo peticiones del frontend
+// Configure CORS - Simple configuration for development
+app.use((req, res, next) => {
+  const allowedOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'];
+  const origin = req.headers.origin;
+  
+  // Allow specific origins in development
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
+  // Set Vary header to avoid caching issues
+  res.setHeader('Vary', 'Origin');
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+// Body parser with higher limit and strict mode
+app.use(express.json({ 
+  limit: '10mb',
+  strict: true,
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString();
+  }
 }));
 
-// Body parser
-app.use(express.json());
+// URL-encoded parser
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Cookie parser
 app.use(cookieParser());
@@ -45,26 +74,72 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // File uploading
-app.use(fileupload());
+app.use(fileupload({
+  createParentPath: true,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+}));
 
-// Sanitize data
+// Sanitize data - after parsing but before route handling
 app.use(mongoSanitize);
 
-// Enable CORS
-app.use(cors());
-
-// Set security headers
-app.use(helmet());
+// Configure security headers based on environment
+if (process.env.NODE_ENV === 'development') {
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          connectSrc: ["'self'", "http://localhost:*", "http://127.0.0.1:*"],
+          imgSrc: ["'self'", "data:", "https:"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+          blockAllMixedContent: []
+        }
+      },
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: false,
+      crossOriginOpenerPolicy: false
+    })
+  );
+} else {
+  // Production security configuration
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          connectSrc: ["'self'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" }
+    })
+  );
+}
 
 // Prevent XSS attacks
 app.use(xss());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 mins
-  max: 100
+// Create separate rate limiters for auth and general routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // 30 requests per windowMs for auth routes
+  message: 'Too many authentication attempts, please try again later'
 });
-app.use(limiter);
+
+const apiLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 mins
+  max: 100 // 100 requests per windowMs for other routes
+});
+
+// Apply rate limiting - auth routes get a separate limit
+app.use('/api/v1/auth', authLimiter);
+app.use('/api/v1', apiLimiter);
 
 // Prevent http param pollution
 app.use(hpp());
@@ -72,19 +147,23 @@ app.use(hpp());
 // Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Mount routers
-app.use('/api/v1/communities', communities);
-app.use('/api/v1/courses', courses);
+// Mount routers - order matters for nested routes
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/users', users);
+app.use('/api/v1/communities', communities); // This should come before courses and reviews as they are nested
+app.use('/api/v1/courses', courses);
 app.use('/api/v1/reviews', reviews);
 
-// Error handler middleware
+// Error handler middleware - should be last
 app.use(errorHandler);
-
 
 const PORT = process.env.PORT || 5000;
 
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
 
 const server = app.listen(
   PORT,
@@ -93,8 +172,10 @@ const server = app.listen(
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  // Close server & exit process
-  server.close(() => process.exit(1));
+  console.error('Unhandled Rejection at:', promise, 'reason:', err);
+  // Close server & exit process gracefully
+  server.close(() => {
+    console.log('Server closed due to unhandled promise rejection');
+    process.exit(1);
+  });
 });
-

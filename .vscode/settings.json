@@ -1,6 +1,7 @@
 {
     "css.validate": true,
     "css.lint.validProperties": ["appearance", "-webkit-appearance"],
+    "npm.packageManager": "pnpm",
     "[html]": {
         "css.validate": false
     }
