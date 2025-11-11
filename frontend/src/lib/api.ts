@@ -48,6 +48,12 @@ export class ApiClient {
       ...options.headers,
     };
 
+    // Add Authorization header if token exists in localStorage
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
@@ -74,21 +80,34 @@ export class ApiClient {
 
   // Auth Methods
   static async login(input: LoginInput): Promise<AuthResponse> {
-    return this.request('/auth/login', {
+    const response = await this.request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(input),
     });
+    // Store token in localStorage for subsequent requests
+    if (response.token) {
+      localStorage.setItem('authToken', response.token);
+    }
+    return response;
   }
 
   static async register(input: RegisterInput): Promise<AuthResponse> {
-    return this.request('/auth/register', {
+    const response = await this.request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(input),
     });
+    // Store token in localStorage for subsequent requests
+    if (response.token) {
+      localStorage.setItem('authToken', response.token);
+    }
+    return response;
   }
 
   static async logout(): Promise<{ success: boolean }> {
-    return this.request('/auth/logout');
+    await this.request('/auth/logout');
+    // Remove token from localStorage on logout
+    localStorage.removeItem('authToken');
+    return { success: true };
   }
 
   static async getCurrentUser(): Promise<ApiResponse<User>> {
@@ -103,10 +122,15 @@ export class ApiClient {
   }
 
   static async updatePassword(input: UpdatePasswordInput): Promise<AuthResponse> {
-    return this.request('/auth/updatepassword', {
+    const response = await this.request<AuthResponse>('/auth/updatepassword', {
       method: 'PUT',
       body: JSON.stringify(input),
     });
+    // Store token in localStorage if provided
+    if (response.token) {
+      localStorage.setItem('authToken', response.token);
+    }
+    return response;
   }
 
   static async forgotPassword(email: string): Promise<{ success: boolean }> {
@@ -117,10 +141,15 @@ export class ApiClient {
   }
 
   static async resetPassword(input: ResetPasswordInput): Promise<AuthResponse> {
-    return this.request(`/auth/resetpassword/${input.resetToken}`, {
+    const response = await this.request<AuthResponse>(`/auth/resetpassword/${input.resetToken}`, {
       method: 'PUT',
       body: JSON.stringify({ password: input.password }),
     });
+    // Store token in localStorage if provided
+    if (response.token) {
+      localStorage.setItem('authToken', response.token);
+    }
+    return response;
   }
 
   // Communities Methods

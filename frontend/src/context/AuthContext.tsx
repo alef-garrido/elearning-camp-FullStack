@@ -24,6 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.data);
     } catch (error) {
       setUser(null);
+      // Clear token on authentication failure
+      localStorage.removeItem('authToken');
     } finally {
       setIsLoading(false);
     }
