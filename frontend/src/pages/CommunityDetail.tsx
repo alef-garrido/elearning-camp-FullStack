@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Star, MapPin, Globe, Mail, Phone, ArrowLeft, Users, Calendar, CreditCard, Camera } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,12 @@ import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EnrolledUsersList } from "@/components/EnrolledUsersList";
 
 const CommunityDetail = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const canCreateReview = useFeatureFlag('review-creation');
   const [community, setCommunity] = useState<Community | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -34,7 +36,11 @@ const CommunityDetail = () => {
   const [reviewsTotalPages, setReviewsPagination] = useState(1);
   const [showPhotoUploader, setShowPhotoUploader] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [enrolled, setEnrolled] = useState(false);
+  const [enrollmentCount, setEnrollmentCount] = useState<number | null>(null);
+  const [enrollLoading, setEnrollLoading] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [enrollmentUpdated, setEnrollmentUpdated] = useState(0);
   const coursesPerPage = 6;
   const reviewsPerPage = 5;
 
@@ -57,6 +63,10 @@ const CommunityDetail = () => {
       ]);
       
       setCommunity(communityRes.data);
+      // Populate enrollment count if provided by backend
+      if (communityRes.data && (communityRes.data as any).enrollmentCount !== undefined) {
+        setEnrollmentCount((communityRes.data as any).enrollmentCount as number);
+      }
       
       // Handle pagination response
       if (coursesRes.pagination) {
@@ -79,6 +89,21 @@ const CommunityDetail = () => {
       setIsLoading(false);
     }
   };
+
+  // Check current user's enrollment status when community and user are available
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (!user || !community) return;
+      try {
+        const res = await ApiClient.getEnrollmentStatus(community._id);
+        setEnrolled(res.data.enrolled);
+      } catch (err) {
+        // If unauthorized or other error, just assume not enrolled
+        setEnrolled(false);
+      }
+    };
+    checkStatus();
+  }, [user, community]);
 
   const handleReviewSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -472,11 +497,81 @@ const CommunityDetail = () => {
 
                 <Separator />
 
-                <Button className="w-full bg-gradient-primary hover:opacity-90">
-                  Join Community
-                </Button>
+                <div>
+                  <div className="text-sm text-muted-foreground mb-2">{enrollmentCount !== null ? `${enrollmentCount} member${enrollmentCount === 1 ? '' : 's'}` : ''}</div>
+                  <Button
+                    className="w-full bg-gradient-primary hover:opacity-90"
+                    disabled={enrollLoading}
+                    onClick={async () => {
+                      if (!isAuthenticated) {
+                        navigate('/auth');
+                        return;
+                      }
+
+                      setEnrollLoading(true);
+                      // Optimistic update
+                      const prevEnrolled = enrolled;
+                      const prevCount = enrollmentCount;
+
+                      if (!enrolled) {
+                        setEnrolled(true);
+                        setEnrollmentCount((c) => (c ?? 0) + 1);
+                        try {
+                          const res = await ApiClient.enrollCommunity(id!);
+                          // if backend returned count, sync
+                          if ((res as any).enrollmentCount !== undefined) {
+                            setEnrollmentCount((res as any).enrollmentCount as number);
+                          }
+                          toast.success('Enrolled in community');
+                        } catch (err: any) {
+                          // revert
+                          setEnrolled(prevEnrolled);
+                          setEnrollmentCount(prevCount);
+                          toast.error(err.message || 'Failed to enroll');
+                        } finally {
+                          setEnrollLoading(false);
+                        }
+                      } else {
+                        // Unenroll
+                        setEnrolled(false);
+                        setEnrollmentCount((c) => (c ?? 1) - 1);
+                        try {
+                          const res = await ApiClient.unenrollCommunity(id!);
+                          if ((res as any).enrollmentCount !== undefined) {
+                            setEnrollmentCount((res as any).enrollmentCount as number);
+                          }
+                          toast.success('You have left the community');
+                        } catch (err: any) {
+                          // revert
+                          setEnrolled(prevEnrolled);
+                          setEnrollmentCount(prevCount);
+                          toast.error(err.message || 'Failed to leave community');
+                        } finally {
+                          setEnrollLoading(false);
+                        }
+                      }
+                    }}
+                  >
+                    {enrollLoading ? 'Processing...' : enrolled ? 'Leave Community' : 'Join Community'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
+
+            {/* Enrolled Users Section - only show to owners/admins */}
+            {isOwner && (
+              <div className="mt-8">
+                <EnrolledUsersList
+                  communityId={id!}
+                  isOwner={isOwner}
+                  isAdmin={user?.role === 'admin'}
+                  onUserRemoved={() => {
+                    // Trigger a reload of enrollment count when a user is removed
+                    setEnrollmentUpdated(prev => prev + 1);
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

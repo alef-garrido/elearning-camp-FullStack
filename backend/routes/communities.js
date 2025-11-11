@@ -34,8 +34,13 @@ router
     .delete(protect, unenrollCommunity);
 
 router
-    .route('/:id/enrolled')
-    .get(protect, getEnrolledUsers);
+        .route('/:id/enrolled')
+        .get(protect, getEnrolledUsers);
+
+// Check current user's enrollment status
+router
+    .route('/:id/enrollment-status')
+    .get(protect, require('../controllers/communities').getEnrollmentStatus);
 
 // Re-route into other resource routers
 router.use('/:communityId/courses', courseRouter);

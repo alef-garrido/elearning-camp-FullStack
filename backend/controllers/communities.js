@@ -45,6 +45,12 @@ exports.enrollCommunity = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse(`Community not found with id of ${communityId}`, 404));
   }
 
+  // Prevent duplicate active enrollment
+  const existing = await Enrollment.findOne({ user: req.user.id, community: communityId, status: 'active' });
+  if (existing) {
+    return next(new ErrorResponse('User is already enrolled in this community', 409));
+  }
+
   try {
     const enrollment = await Enrollment.create({
       user: req.user.id,
@@ -56,7 +62,7 @@ exports.enrollCommunity = asyncHandler(async (req, res, next) => {
 
     res.status(201).json({ success: true, data: enrollment, enrollmentCount: count });
   } catch (err) {
-    // Duplicate enrollment -> unique index violation
+    // Duplicate enrollment -> unique index violation (race)
     if (err.code === 11000) {
       return next(new ErrorResponse('User is already enrolled in this community', 409));
     }
@@ -69,8 +75,21 @@ exports.enrollCommunity = asyncHandler(async (req, res, next) => {
 // @access    Private
 exports.unenrollCommunity = asyncHandler(async (req, res, next) => {
   const communityId = req.params.id;
+  // Support admin/owner unenrolling other users via ?userId=<id>
+  const targetUserId = req.query.userId || req.user.id;
 
-  const enrollment = await Enrollment.findOne({ user: req.user.id, community: communityId, status: 'active' });
+  // If attempting to unenroll someone else, allow only community owner or admin
+  if (targetUserId.toString() !== req.user.id.toString()) {
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return next(new ErrorResponse(`Community not found with id of ${communityId}`, 404));
+    }
+    if (community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+      return next(new ErrorResponse('Not authorized to unenroll other users', 403));
+    }
+  }
+
+  const enrollment = await Enrollment.findOne({ user: targetUserId, community: communityId, status: 'active' });
   if (!enrollment) {
     return next(new ErrorResponse('Enrollment not found', 404));
   }
@@ -121,6 +140,15 @@ exports.getEnrolledUsers = asyncHandler(async (req, res, next) => {
     },
     data: enrollments
   });
+});
+
+// @desc      Get current user's enrollment status for a community
+// @route     GET /api/v1/communities/:id/enrollment-status
+// @access    Private
+exports.getEnrollmentStatus = asyncHandler(async (req, res, next) => {
+  const communityId = req.params.id;
+  const enrollment = await Enrollment.findOne({ community: communityId, user: req.user.id, status: 'active' });
+  res.status(200).json({ success: true, data: { enrolled: !!enrollment } });
 });
 
 // @desc      Create new community
