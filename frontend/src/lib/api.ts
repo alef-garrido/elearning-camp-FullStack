@@ -320,7 +320,9 @@ export class ApiClient {
   }
 
   static async unenrollUserFromCommunity(communityId: string, userId: string): Promise<ApiResponse<any>> {
-    return this.request(`/communities/${communityId}/enroll?userId=${userId}`, {
+    const query = new URLSearchParams();
+    query.set('userId', userId);
+    return this.request(`/communities/${communityId}/enroll?${query}`, {
       method: 'DELETE',
     });
   }
