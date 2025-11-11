@@ -3,6 +3,7 @@ const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/async');
 const geocoder = require('../utils/geocoder');
 const Community = require('../models/Community');
+const Enrollment = require('../models/Enrollment');
 
 
 // @desc      Get all communities
@@ -21,7 +22,8 @@ exports.getCommunities = asyncHandler(async (req, res, next) => {
 // @access    Public
 exports.getCommunity = asyncHandler(async (req, res, next) => {
  
-    const community = await Community.findById(req.params.id);
+  // Include virtual enrollment count
+  const community = await Community.findById(req.params.id).populate('enrollmentCount');
 
     if (!community) {
       return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
@@ -31,6 +33,95 @@ exports.getCommunity = asyncHandler(async (req, res, next) => {
 
 
 })
+
+// @desc      Enroll current user in a community
+// @route     POST /api/v1/communities/:id/enroll
+// @access    Private
+exports.enrollCommunity = asyncHandler(async (req, res, next) => {
+  const communityId = req.params.id;
+
+  const community = await Community.findById(communityId);
+  if (!community) {
+    return next(new ErrorResponse(`Community not found with id of ${communityId}`, 404));
+  }
+
+  try {
+    const enrollment = await Enrollment.create({
+      user: req.user.id,
+      community: communityId,
+      status: 'active'
+    });
+
+    const count = await Enrollment.countDocuments({ community: communityId, status: 'active' });
+
+    res.status(201).json({ success: true, data: enrollment, enrollmentCount: count });
+  } catch (err) {
+    // Duplicate enrollment -> unique index violation
+    if (err.code === 11000) {
+      return next(new ErrorResponse('User is already enrolled in this community', 409));
+    }
+    return next(err);
+  }
+});
+
+// @desc      Unenroll current user from a community (soft-cancel)
+// @route     DELETE /api/v1/communities/:id/enroll
+// @access    Private
+exports.unenrollCommunity = asyncHandler(async (req, res, next) => {
+  const communityId = req.params.id;
+
+  const enrollment = await Enrollment.findOne({ user: req.user.id, community: communityId, status: 'active' });
+  if (!enrollment) {
+    return next(new ErrorResponse('Enrollment not found', 404));
+  }
+
+  // Soft-cancel for history
+  enrollment.status = 'cancelled';
+  await enrollment.save();
+
+  const count = await Enrollment.countDocuments({ community: communityId, status: 'active' });
+
+  res.status(200).json({ success: true, data: {}, enrollmentCount: count });
+});
+
+// @desc      Get enrolled users for a community (paginated)
+// @route     GET /api/v1/communities/:id/enrolled
+// @access    Private (only community owner or admin)
+exports.getEnrolledUsers = asyncHandler(async (req, res, next) => {
+  const communityId = req.params.id;
+
+  const community = await Community.findById(communityId);
+  if (!community) {
+    return next(new ErrorResponse(`Community not found with id of ${communityId}`, 404));
+  }
+
+  // Only owner or admin may list enrolled users
+  if (community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    return next(new ErrorResponse('Not authorized to view enrolled users', 403));
+  }
+
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 25;
+  const skip = (page - 1) * limit;
+
+  const total = await Enrollment.countDocuments({ community: communityId, status: 'active' });
+  const enrollments = await Enrollment.find({ community: communityId, status: 'active' })
+    .populate('user', 'name email role createdAt')
+    .skip(skip)
+    .limit(limit)
+    .sort({ enrolledAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: enrollments.length,
+    pagination: {
+      page,
+      limit,
+      total
+    },
+    data: enrollments
+  });
+});
 
 // @desc      Create new community
 // @route     POST /api/v1/communities

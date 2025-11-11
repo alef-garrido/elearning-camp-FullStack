@@ -6,7 +6,10 @@ const {
     updateCommunity, 
     deleteCommunity,
     getCommunitiesInRadius,
-    communityPhotoUpload 
+    communityPhotoUpload,
+    enrollCommunity,
+    unenrollCommunity,
+    getEnrolledUsers
 } = require('../controllers/communities');
 const advancedResults = require('../middleware/advancedResults');
 const Community = require('../models/Community');
@@ -23,6 +26,16 @@ const { protect, authorize}  = require('../middleware/auth');
 router
     .route('/:id/photo')
     .put(protect, authorize('publisher', 'admin'), communityPhotoUpload);
+
+// Enrollment routes
+router
+    .route('/:id/enroll')
+    .post(protect, enrollCommunity)
+    .delete(protect, unenrollCommunity);
+
+router
+    .route('/:id/enrolled')
+    .get(protect, getEnrolledUsers);
 
 // Re-route into other resource routers
 router.use('/:communityId/courses', courseRouter);
