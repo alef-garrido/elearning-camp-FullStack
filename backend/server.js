@@ -25,8 +25,10 @@ const courses = require('./routes/courses');
 const auth = require('./routes/auth');
 const users = require('./routes/users');
 const reviews = require('./routes/reviews');
+const enrollments = require('./routes/enrollments');
 
 const app = express();
+
 
 // Configure CORS - Simple configuration for development
 app.use((req, res, next) => {
@@ -153,6 +155,7 @@ app.use('/api/v1/users', users);
 app.use('/api/v1/communities', communities); // This should come before courses and reviews as they are nested
 app.use('/api/v1/courses', courses);
 app.use('/api/v1/reviews', reviews);
+app.use('/api/v1/enrollments', enrollments);
 
 // Error handler middleware - should be last
 app.use(errorHandler);

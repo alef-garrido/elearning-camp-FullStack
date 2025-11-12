@@ -328,3 +328,35 @@ exports.communityPhotoUpload = asyncHandler(async (req, res, next) => {
     }
   
 });
+
+// @desc      Get all communities a user is enrolled in
+// @route     GET /api/v1/enrollments/my-enrollments
+// @access    Private
+exports.getMyEnrollments = asyncHandler(async (req, res, next) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
+  const total = await Enrollment.countDocuments({ user: req.user.id, status: 'active' });
+  const enrollments = await Enrollment.find({ user: req.user.id, status: 'active' })
+    .populate({
+      path: 'community',
+      populate: {
+        path: 'enrollmentCount' // Populate the virtual field
+      }
+    })
+    .skip(skip)
+    .limit(limit)
+    .sort({ enrolledAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: enrollments.length,
+    pagination: {
+      page,
+      limit,
+      total
+    },
+    data: enrollments
+  });
+});

@@ -296,6 +296,13 @@ export class ApiClient {
   }
 
   // Enrollment Methods
+  static async getMyEnrollments(params?: PaginationParams): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/enrollments/my-enrollments?${query}`);
+  }
+
   static async enrollCommunity(communityId: string): Promise<ApiResponse<any>> {
     return this.request(`/communities/${communityId}/enroll`, {
       method: 'POST',
