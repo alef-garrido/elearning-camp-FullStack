@@ -17,7 +17,8 @@ interface Enrollment {
 }
 
 interface EnrolledUsersListProps {
-  communityId: string;
+  communityId?: string;
+  courseId?: string;
   isAdmin?: boolean;
   isOwner?: boolean;
   onUserRemoved?: () => void;
@@ -25,10 +26,13 @@ interface EnrolledUsersListProps {
 
 export const EnrolledUsersList = ({
   communityId,
+  courseId,
   isAdmin = false,
   isOwner = false,
   onUserRemoved
 }: EnrolledUsersListProps) => {
+  // determine whether we are showing community or course enrollments
+  const isCourse = !!courseId;
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -40,15 +44,14 @@ export const EnrolledUsersList = ({
 
   useEffect(() => {
     loadEnrolledUsers();
-  }, [communityId, page]);
+  }, [communityId, courseId, page]);
 
   const loadEnrolledUsers = async () => {
     try {
       setIsLoading(true);
-      const res = await ApiClient.getCommunityEnrollments(communityId, {
-        page,
-        limit: enrollmentsPerPage
-      });
+      const res = isCourse
+        ? await ApiClient.getCourseEnrollments(courseId!, { page, limit: enrollmentsPerPage })
+        : await ApiClient.getCommunityEnrollments(communityId!, { page, limit: enrollmentsPerPage });
       
       setEnrollments(res.data || []);
       if (res.pagination) {
@@ -70,7 +73,11 @@ export const EnrolledUsersList = ({
 
     try {
       setRemovingUserId(userId);
-      await ApiClient.unenrollUserFromCommunity(communityId, userId);
+      if (isCourse) {
+        await ApiClient.unenrollUserFromCourse(courseId!, userId);
+      } else {
+        await ApiClient.unenrollUserFromCommunity(communityId!, userId);
+      }
       toast.success("User removed from community");
       
       // Reload the list

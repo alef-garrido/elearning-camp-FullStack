@@ -35,9 +35,14 @@ const MyEnrollments = () => {
       setError(null);
       try {
         const response = await ApiClient.getMyEnrollments({ page, limit: 10 });
-        setEnrolledCommunities(response.data);
-        setTotalCount(response.pagination?.total || 0);
-        setTotalPages(Math.ceil((response.pagination?.total || 0) / (response.pagination?.limit || 10)));
+        // The API returns both community and course enrollments. This view lists community memberships only.
+        const data = response.data || [];
+        const communityOnly = data.filter((e: any) => e.community);
+        setEnrolledCommunities(communityOnly);
+        // Use client-side counts for community-only view. Server pagination currently returns all enrollments (both types),
+        // so we compute pages locally from the filtered list.
+        setTotalCount(communityOnly.length);
+        setTotalPages(Math.max(1, Math.ceil(communityOnly.length / 10)));
       } catch (err: any) {
         setError(err.message || 'Failed to fetch enrollments.');
         toast.error('Failed to load enrollments');

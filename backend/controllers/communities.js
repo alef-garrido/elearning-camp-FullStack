@@ -345,6 +345,9 @@ exports.getMyEnrollments = asyncHandler(async (req, res, next) => {
         path: 'enrollmentCount' // Populate the virtual field
       }
     })
+    .populate({
+      path: 'course'
+    })
     .skip(skip)
     .limit(limit)
     .sort({ enrolledAt: -1 });

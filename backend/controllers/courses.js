@@ -2,6 +2,7 @@ const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/async');
 const  Course = require('../models/Course');
 const  Community = require('../models/Community');
+const Enrollment = require('../models/Enrollment');
 
 // @desc    Get courses
 // @route   GET /api/v1/courses
@@ -42,6 +43,139 @@ exports.getCourse = asyncHandler(async (req, res, next) => {
         data: course
     });
 
+});
+
+
+// @desc      Enroll current user in a course
+// @route     POST /api/v1/courses/:id/enroll
+// @access    Private
+exports.enrollCourse = asyncHandler(async (req, res, next) => {
+    const courseId = req.params.id;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+        return next(new ErrorResponse(`Course not found with id of ${courseId}`, 404));
+    }
+
+    // Ensure user is a member of the community that owns this course
+    const community = await Community.findById(course.community);
+    if (!community) {
+        return next(new ErrorResponse(`Community for this course not found`, 500));
+    }
+
+    const isCommunityMember = await Enrollment.findOne({ user: req.user.id, community: community._id, status: 'active' });
+    // Allow enrollment if user is community owner or admin as well
+    if (!isCommunityMember && community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+        return next(new ErrorResponse('You must be a member of the community to enroll in its courses', 403));
+    }
+
+    // Prevent duplicate active enrollment
+    const existing = await Enrollment.findOne({ user: req.user.id, course: courseId, status: 'active' });
+    if (existing) {
+        return next(new ErrorResponse('User is already enrolled in this course', 409));
+    }
+
+    try {
+        const enrollment = await Enrollment.create({
+            user: req.user.id,
+            course: courseId,
+            status: 'active'
+        });
+
+        const count = await Enrollment.countDocuments({ course: courseId, status: 'active' });
+
+        res.status(201).json({ success: true, data: enrollment, enrollmentCount: count });
+    } catch (err) {
+        // Duplicate enrollment -> unique index violation (race)
+        if (err.code === 11000) {
+            return next(new ErrorResponse('User is already enrolled in this course', 409));
+        }
+        return next(err);
+    }
+});
+
+
+// @desc      Unenroll current user from a course (soft-cancel)
+// @route     DELETE /api/v1/courses/:id/enroll
+// @access    Private
+exports.unenrollCourse = asyncHandler(async (req, res, next) => {
+    const courseId = req.params.id;
+    // Support admin/owner unenrolling other users via ?userId=<id>
+    const targetUserId = req.query.userId || req.user.id;
+
+    // If attempting to unenroll someone else, allow only course owner or admin
+    if (targetUserId.toString() !== req.user.id.toString()) {
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return next(new ErrorResponse(`Course not found with id of ${courseId}`, 404));
+        }
+        if (course.user.toString() !== req.user.id && req.user.role !== 'admin') {
+            return next(new ErrorResponse('Not authorized to unenroll other users', 403));
+        }
+    }
+
+    const enrollment = await Enrollment.findOne({ user: targetUserId, course: courseId, status: 'active' });
+    if (!enrollment) {
+        return next(new ErrorResponse('Enrollment not found', 404));
+    }
+
+    // Soft-cancel for history
+    enrollment.status = 'cancelled';
+    await enrollment.save();
+
+    const count = await Enrollment.countDocuments({ course: courseId, status: 'active' });
+
+    res.status(200).json({ success: true, data: {}, enrollmentCount: count });
+});
+
+
+// @desc      Get enrolled users for a course (paginated)
+// @route     GET /api/v1/courses/:id/enrolled
+// @access    Private (only course owner or admin)
+exports.getEnrolledUsers = asyncHandler(async (req, res, next) => {
+    const courseId = req.params.id;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+        return next(new ErrorResponse(`Course not found with id of ${courseId}`, 404));
+    }
+
+    // Only owner or admin may list enrolled users
+    if (course.user.toString() !== req.user.id && req.user.role !== 'admin') {
+        return next(new ErrorResponse('Not authorized to view enrolled users', 403));
+    }
+
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 25;
+    const skip = (page - 1) * limit;
+
+    const total = await Enrollment.countDocuments({ course: courseId, status: 'active' });
+    const enrollments = await Enrollment.find({ course: courseId, status: 'active' })
+        .populate('user', 'name email role createdAt')
+        .skip(skip)
+        .limit(limit)
+        .sort({ enrolledAt: -1 });
+
+    res.status(200).json({
+        success: true,
+        count: enrollments.length,
+        pagination: {
+            page,
+            limit,
+            total
+        },
+        data: enrollments
+    });
+});
+
+
+// @desc      Get current user's enrollment status for a course
+// @route     GET /api/v1/courses/:id/enrollment-status
+// @access    Private
+exports.getEnrollmentStatus = asyncHandler(async (req, res, next) => {
+    const courseId = req.params.id;
+    const enrollment = await Enrollment.findOne({ course: courseId, user: req.user.id, status: 'active' });
+    res.status(200).json({ success: true, data: { enrolled: !!enrollment } });
 });
 
 //@desc    Add course

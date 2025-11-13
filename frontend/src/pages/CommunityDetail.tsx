@@ -7,6 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { Community, Course, Review } from "@/types/api";
 import { ApiClient } from "@/lib/api";
@@ -20,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EnrolledUsersList } from "@/components/EnrolledUsersList";
+import { CourseQuickEnroll } from "@/components/CourseQuickEnroll";
 
 const CommunityDetail = () => {
   const { id } = useParams();
@@ -41,6 +43,10 @@ const CommunityDetail = () => {
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [enrollmentUpdated, setEnrollmentUpdated] = useState(0);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [showCourseEnroll, setShowCourseEnroll] = useState(false);
+  const [courseEnrollments, setCourseEnrollments] = useState<Record<string, boolean>>({});
   const coursesPerPage = 6;
   const reviewsPerPage = 5;
 
@@ -104,6 +110,27 @@ const CommunityDetail = () => {
     };
     checkStatus();
   }, [user, community]);
+
+  // Load course enrollment statuses for current user
+  useEffect(() => {
+    const loadCourseEnrollments = async () => {
+      if (!user || !courses || courses.length === 0) return;
+      const enrollments: Record<string, boolean> = {};
+      
+      for (const course of courses) {
+        try {
+          const res = await ApiClient.getCourseEnrollmentStatus(course._id);
+          enrollments[course._id] = res.data.enrolled;
+        } catch {
+          enrollments[course._id] = false;
+        }
+      }
+      
+      setCourseEnrollments(enrollments);
+    };
+    
+    loadCourseEnrollments();
+  }, [user, courses]);
 
   const handleReviewSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -227,209 +254,265 @@ const CommunityDetail = () => {
         </Dialog>
 
         <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
-            <div>
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-4">
-                <h1 className="text-3xl sm:text-4xl font-bold">{community.name}</h1>
-                {community.averageRating && (
-                  <Badge variant="secondary" className="flex items-center gap-1.5 w-fit">
-                    <Star className="h-4 w-4 fill-primary text-primary" />
-                    <span className="font-semibold text-base">{community.averageRating}</span>
-                  </Badge>
-                )}
-              </div>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-                {community.description}
-              </p>
-            </div>
+          {/* Main Content with Tabs */}
+          <div className="lg:col-span-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="courses">Courses</TabsTrigger>
+                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              </TabsList>
 
-            {community.topics && community.topics.length > 0 && (
-              <div>
-                <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">Topics Covered</h2>
-                <div className="flex flex-wrap gap-2">
-                  {community.topics.map((topic, index) => (
-                    <Badge key={index} variant="outline" className="text-sm">
-                      {topic}
-                    </Badge>
-                  ))}
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="space-y-6 sm:space-y-8">
+                <div>
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-4">
+                    <h1 className="text-3xl sm:text-4xl font-bold">{community.name}</h1>
+                    {community.averageRating && (
+                      <Badge variant="secondary" className="flex items-center gap-1.5 w-fit">
+                        <Star className="h-4 w-4 fill-primary text-primary" />
+                        <span className="font-semibold text-base">{community.averageRating}</span>
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
+                    {community.description}
+                  </p>
                 </div>
-              </div>
-            )}
 
-            <Separator />
-
-            {/* Courses */}
-            <div>
-              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Available Courses</h2>
-              {courses.length === 0 ? (
-                <p className="text-muted-foreground">No courses available yet</p>
-              ) : (
-                <>
-                  <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-                    {courses.map((course) => (
-                      <CourseCard key={course._id} course={course} />
-                    ))}
+                {community.topics && community.topics.length > 0 && (
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">Topics Covered</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {community.topics.map((topic, index) => (
+                        <Badge key={index} variant="outline" className="text-sm">
+                          {topic}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                  
-                  {coursesTotalPages > 1 && (
-                    <Pagination className="mt-6">
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            onClick={() => setCoursesPage(p => Math.max(1, p - 1))}
-                            className={coursesPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                        
-                        {[...Array(coursesTotalPages)].map((_, i) => {
-                          const pageNum = i + 1;
-                          if (
-                            pageNum === 1 ||
-                            pageNum === coursesTotalPages ||
-                            (pageNum >= coursesPage - 1 && pageNum <= coursesPage + 1)
-                          ) {
-                            return (
-                              <PaginationItem key={pageNum}>
-                                <PaginationLink
-                                  onClick={() => setCoursesPage(pageNum)}
-                                  isActive={coursesPage === pageNum}
-                                  className="cursor-pointer"
-                                >
-                                  {pageNum}
-                                </PaginationLink>
-                              </PaginationItem>
-                            );
-                          } else if (pageNum === coursesPage - 2 || pageNum === coursesPage + 2) {
-                            return (
-                              <PaginationItem key={pageNum}>
-                                <PaginationEllipsis />
-                              </PaginationItem>
-                            );
-                          }
-                          return null;
-                        })}
-                        
-                        <PaginationItem>
-                          <PaginationNext 
-                            onClick={() => setCoursesPage(p => Math.min(coursesTotalPages, p + 1))}
-                            className={coursesPage === coursesTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  )}
-                </>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Reviews */}
-            <div>
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="text-xl sm:text-2xl font-semibold">Reviews</h2>
-                {canCreateReview && (
-                  <Dialog open={showReviewForm} onOpenChange={setShowReviewForm}>
-                    <DialogTrigger asChild>
-                      <Button>Write a Review</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Write a Review</DialogTitle>
-                      </DialogHeader>
-                      <form onSubmit={handleReviewSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="review-title">Title</Label>
-                          <Input id="review-title" name="title" required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="review-text">Review</Label>
-                          <Textarea id="review-text" name="text" required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="review-rating">Rating</Label>
-                          <Input id="review-rating" name="rating" type="number" min="1" max="5" required />
-                        </div>
-                        <Button type="submit">Submit Review</Button>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
                 )}
-              </div>
-              {reviews.length === 0 ? (
-                <p className="text-muted-foreground">No reviews yet</p>
-              ) : (
-                <>
-                  <div className="space-y-4">
-                    {reviews.map((review) => (
-                      <Card key={review._id}>
-                        <CardHeader>
-                          <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-base sm:text-lg">{review.title}</CardTitle>
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                              <Star className="h-3 w-3 fill-primary text-primary" />
-                              {review.rating}
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm sm:text-base text-muted-foreground">{review.text}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                  
-                  {reviewsTotalPages > 1 && (
-                    <Pagination className="mt-6">
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            onClick={() => setReviewsPage(p => Math.max(1, p - 1))}
-                            className={reviewsPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                        
-                        {[...Array(reviewsTotalPages)].map((_, i) => {
-                          const pageNum = i + 1;
-                          if (
-                            pageNum === 1 ||
-                            pageNum === reviewsTotalPages ||
-                            (pageNum >= reviewsPage - 1 && pageNum <= reviewsPage + 1)
-                          ) {
-                            return (
-                              <PaginationItem key={pageNum}>
-                                <PaginationLink
-                                  onClick={() => setReviewsPage(pageNum)}
-                                  isActive={reviewsPage === pageNum}
-                                  className="cursor-pointer"
+              </TabsContent>
+
+              {/* Courses Tab */}
+              <TabsContent value="courses" className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-semibold mb-6">Available Courses</h2>
+                  {courses.length === 0 ? (
+                    <p className="text-muted-foreground">No courses available yet</p>
+                  ) : (
+                    <>
+                      <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+                        {courses.map((course) => (
+                          <Card
+                            key={course._id}
+                            className="flex flex-col hover:shadow-lg transition-shadow cursor-pointer"
+                            onClick={() => {
+                              setSelectedCourse(course);
+                              setShowCourseEnroll(true);
+                            }}
+                          >
+                            <CardHeader>
+                              <CardTitle className="text-lg line-clamp-2">
+                                {course.title}
+                              </CardTitle>
+                              <div className="flex gap-2 flex-wrap">
+                                <Badge variant="outline" className="text-xs">
+                                  {course.weeks} weeks
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  ${course.membership}
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="flex-grow">
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {course.description}
+                              </p>
+                            </CardContent>
+                            <div className="px-6 py-4 border-t">
+                              {courseEnrollments[course._id] ? (
+                                <Badge className="w-full justify-center bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                  Enrolled
+                                </Badge>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-gradient-primary hover:opacity-90"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedCourse(course);
+                                    setShowCourseEnroll(true);
+                                  }}
                                 >
-                                  {pageNum}
-                                </PaginationLink>
-                              </PaginationItem>
-                            );
-                          } else if (pageNum === reviewsPage - 2 || pageNum === reviewsPage + 2) {
-                            return (
-                              <PaginationItem key={pageNum}>
-                                <PaginationEllipsis />
-                              </PaginationItem>
-                            );
-                          }
-                          return null;
-                        })}
-                        
-                        <PaginationItem>
-                          <PaginationNext 
-                            onClick={() => setReviewsPage(p => Math.min(reviewsTotalPages, p + 1))}
-                            className={reviewsPage === reviewsTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
+                                  View & Enroll
+                                </Button>
+                              )}
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {coursesTotalPages > 1 && (
+                        <Pagination className="mt-6">
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                onClick={() => setCoursesPage(p => Math.max(1, p - 1))}
+                                className={coursesPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                            
+                            {[...Array(coursesTotalPages)].map((_, i) => {
+                              const pageNum = i + 1;
+                              if (
+                                pageNum === 1 ||
+                                pageNum === coursesTotalPages ||
+                                (pageNum >= coursesPage - 1 && pageNum <= coursesPage + 1)
+                              ) {
+                                return (
+                                  <PaginationItem key={pageNum}>
+                                    <PaginationLink
+                                      onClick={() => setCoursesPage(pageNum)}
+                                      isActive={coursesPage === pageNum}
+                                      className="cursor-pointer"
+                                    >
+                                      {pageNum}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                );
+                              } else if (pageNum === coursesPage - 2 || pageNum === coursesPage + 2) {
+                                return (
+                                  <PaginationItem key={pageNum}>
+                                    <PaginationEllipsis />
+                                  </PaginationItem>
+                                );
+                              }
+                              return null;
+                            })}
+                            
+                            <PaginationItem>
+                              <PaginationNext 
+                                onClick={() => setCoursesPage(p => Math.min(coursesTotalPages, p + 1))}
+                                className={coursesPage === coursesTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </div>
+                </div>
+              </TabsContent>
+
+              {/* Reviews Tab */}
+              <TabsContent value="reviews" className="space-y-6">
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-semibold">Reviews</h2>
+                    {canCreateReview && (
+                      <Dialog open={showReviewForm} onOpenChange={setShowReviewForm}>
+                        <DialogTrigger asChild>
+                          <Button>Write a Review</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Write a Review</DialogTitle>
+                          </DialogHeader>
+                          <form onSubmit={handleReviewSubmit} className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="review-title">Title</Label>
+                              <Input id="review-title" name="title" required />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="review-text">Review</Label>
+                              <Textarea id="review-text" name="text" required />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="review-rating">Rating</Label>
+                              <Input id="review-rating" name="rating" type="number" min="1" max="5" required />
+                            </div>
+                            <Button type="submit">Submit Review</Button>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                  {reviews.length === 0 ? (
+                    <p className="text-muted-foreground">No reviews yet</p>
+                  ) : (
+                    <>
+                      <div className="space-y-4">
+                        {reviews.map((review) => (
+                          <Card key={review._id}>
+                            <CardHeader>
+                              <div className="flex items-start justify-between gap-2">
+                                <CardTitle className="text-base sm:text-lg">{review.title}</CardTitle>
+                                <Badge variant="secondary" className="flex items-center gap-1">
+                                  <Star className="h-3 w-3 fill-primary text-primary" />
+                                  {review.rating}
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-sm sm:text-base text-muted-foreground">{review.text}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                      
+                      {reviewsTotalPages > 1 && (
+                        <Pagination className="mt-6">
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                onClick={() => setReviewsPage(p => Math.max(1, p - 1))}
+                                className={reviewsPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                            
+                            {[...Array(reviewsTotalPages)].map((_, i) => {
+                              const pageNum = i + 1;
+                              if (
+                                pageNum === 1 ||
+                                pageNum === reviewsTotalPages ||
+                                (pageNum >= reviewsPage - 1 && pageNum <= reviewsPage + 1)
+                              ) {
+                                return (
+                                  <PaginationItem key={pageNum}>
+                                    <PaginationLink
+                                      onClick={() => setReviewsPage(pageNum)}
+                                      isActive={reviewsPage === pageNum}
+                                      className="cursor-pointer"
+                                    >
+                                      {pageNum}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                );
+                              } else if (pageNum === reviewsPage - 2 || pageNum === reviewsPage + 2) {
+                                return (
+                                  <PaginationItem key={pageNum}>
+                                    <PaginationEllipsis />
+                                  </PaginationItem>
+                                );
+                              }
+                              return null;
+                            })}
+                            
+                            <PaginationItem>
+                              <PaginationNext 
+                                onClick={() => setReviewsPage(p => Math.min(reviewsTotalPages, p + 1))}
+                                className={reviewsPage === reviewsTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      )}
+                    </>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Sidebar */}
@@ -574,6 +657,29 @@ const CommunityDetail = () => {
             )}
           </div>
         </div>
+
+        {/* Course Quick Enroll Modal */}
+        {selectedCourse && (
+          <CourseQuickEnroll
+            course={selectedCourse}
+            open={showCourseEnroll}
+            onOpenChange={(open) => {
+              setShowCourseEnroll(open);
+              if (!open) setSelectedCourse(null);
+            }}
+            onEnrollSuccess={() => {
+              // Reload course enrollments to update the UI
+              if (selectedCourse) {
+                setCourseEnrollments(prev => ({
+                  ...prev,
+                  [selectedCourse._id]: !prev[selectedCourse._id]
+                }));
+              }
+            }}
+            userEnrolled={courseEnrollments[selectedCourse._id] || false}
+            communityMember={enrolled}
+          />
+        )}
       </div>
     </div>
   );

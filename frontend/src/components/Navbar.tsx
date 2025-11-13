@@ -38,10 +38,7 @@ const NavbarComponent = () => {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
           <Link to="/communities" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-            Communities
-          </Link>
-          <Link to="/courses" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-            Courses
+            Explore Communities
           </Link>
 
           {isAuthenticated ? (
