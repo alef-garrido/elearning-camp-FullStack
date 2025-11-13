@@ -66,7 +66,25 @@ export interface Course {
   scholarshipsAvailable: boolean;
   community: string | Community;
   user: string;
+  lessons?: Lesson[];
   createdAt: string;
+}
+
+export interface Lesson {
+  _id: string;
+  title: string;
+  type: 'video' | 'pdf' | 'article';
+  url: string;
+  durationSeconds?: number;
+  order?: number;
+  description?: string;
+  attachments?: Attachment[];
+}
+
+export interface Attachment {
+  name: string;
+  url: string;
+  type: string;
 }
 
 export interface CreateCourseInput {
@@ -77,6 +95,14 @@ export interface CreateCourseInput {
   minimumSkill: 'beginner' | 'intermediate' | 'advanced';
   scholarshipsAvailable: boolean;
   communityId: string;
+}
+
+// Lesson Progress Interfaces
+export interface LessonProgress {
+  lesson: string;
+  lastPositionSeconds?: number;
+  completed?: boolean;
+  updatedAt?: string;
 }
 
 // Review Interfaces

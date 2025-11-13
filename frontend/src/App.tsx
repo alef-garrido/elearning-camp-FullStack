@@ -11,6 +11,7 @@ import CommunityDetail from "./pages/CommunityDetail";
 import Courses from "./pages/Courses";
 import CreateCourse from "./pages/CreateCourse";
 import CourseDetail from "./pages/CourseDetail";
+import CoursePlayer from "./pages/CoursePlayer";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/Layout";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/communities/:id" element={<CommunityDetail />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:id" element={<CourseDetail />} />
+            <Route path="/courses/:courseId/player" element={<CoursePlayer />} />
             <Route path="/dashboard" element={<Dashboard />} />
 
             {/* Admin routes */}

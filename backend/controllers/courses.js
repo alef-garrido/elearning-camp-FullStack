@@ -254,3 +254,122 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
         data: {}
     });
 });
+
+// @desc    Get course content (lessons) for an enrolled user
+// @route   GET /api/v1/courses/:courseId/content
+// @access  Private
+exports.getCourseContent = asyncHandler(async (req, res, next) => {
+    // checkEnrollment middleware already ran, so we have req.enrollment
+    const course = await Course.findById(req.params.courseId).select('+lessons');
+  
+    if (!course) {
+      return next(new ErrorResponse(`Course not found with id of ${req.params.courseId}`, 404));
+    }
+  
+    // Return course with lessons
+    res.status(200).json({
+      success: true,
+      data: course,
+    });
+});
+
+// @desc    Get a single lesson for an enrolled user
+// @route   GET /api/v1/courses/:courseId/lessons/:lessonId
+// @access  Private
+exports.getLesson = asyncHandler(async (req, res, next) => {
+    const { courseId, lessonId } = req.params;
+  
+    const course = await Course.findById(courseId).select('+lessons');
+  
+    if (!course) {
+      return next(new ErrorResponse(`Course not found with id of ${courseId}`, 404));
+    }
+  
+    const lesson = course.lessons.id(lessonId);
+  
+    if (!lesson) {
+      return next(new ErrorResponse(`Lesson not found with id of ${lessonId}`, 404));
+    }
+  
+    // Here you would generate a signed URL for lesson.url if it's a private asset
+    // For now, we'll just return the lesson as is.
+  
+    res.status(200).json({
+      success: true,
+      data: lesson,
+    });
+});
+
+// @desc    Update user's progress on a lesson
+// @route   POST /api/v1/courses/:courseId/lessons/:lessonId/progress
+// @access  Private
+exports.updateLessonProgress = asyncHandler(async (req, res, next) => {
+    const { lessonId } = req.params;
+    const { lastPositionSeconds, completed } = req.body;
+  
+    // checkEnrollment middleware provides the enrollment
+    const enrollment = req.enrollment;
+  
+    // Find the progress for the specific lesson
+    const progressIndex = enrollment.progress.findIndex(
+      (p) => p.lesson.toString() === lessonId
+    );
+  
+    if (progressIndex > -1) {
+      // Update existing progress
+      if (lastPositionSeconds !== undefined) {
+        enrollment.progress[progressIndex].lastPositionSeconds = lastPositionSeconds;
+      }
+      if (completed !== undefined) {
+        enrollment.progress[progressIndex].completed = completed;
+      }
+      enrollment.progress[progressIndex].updatedAt = Date.now();
+    } else {
+      // Add new progress entry
+      enrollment.progress.push({
+        lesson: lessonId,
+        lastPositionSeconds,
+        completed,
+        updatedAt: Date.now(),
+      });
+    }
+  
+    await enrollment.save();
+  
+    res.status(200).json({
+      success: true,
+      data: enrollment.progress,
+    });
+});
+
+// @desc    Mark a course as complete for the user
+// @route   POST /api/v1/courses/:courseId/complete
+// @access  Private
+exports.completeCourse = asyncHandler(async (req, res, next) => {
+    const enrollment = req.enrollment;
+  
+    // You might want to add logic here to verify all lessons are completed
+    // For now, we'll just update the enrollment status or a new field.
+    // Let's add a `completedAt` field to the enrollment schema.
+  
+    enrollment.status = 'completed'; // Or a new status
+    // enrollment.completedAt = Date.now(); // If you add this field to the schema
+  
+    await enrollment.save();
+  
+    res.status(200).json({
+      success: true,
+      data: enrollment,
+    });
+});
+
+// @desc    Get user's progress for a course
+// @route   GET /api/v1/courses/:courseId/progress
+// @access  Private
+exports.getCourseProgress = asyncHandler(async (req, res, next) => {
+    // The checkEnrollment middleware provides the enrollment object
+    res.status(200).json({
+      success: true,
+      data: req.enrollment.progress,
+    });
+});

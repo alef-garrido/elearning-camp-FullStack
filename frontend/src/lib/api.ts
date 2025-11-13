@@ -14,7 +14,8 @@ import {
   UpdatePasswordInput,
   ResetPasswordInput,
   PaginationParams,
-  CommunityQueryParams
+  CommunityQueryParams,
+  Lesson,
 } from '@/types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
@@ -365,6 +366,31 @@ export class ApiClient {
       method: 'DELETE'
     });
   }
+
+  // Course Content and Progress Methods
+  static async getCourseContent(courseId: string): Promise<ApiResponse<Course>> {
+    return this.request(`/courses/${courseId}/content`);
+  }
+
+  static async getLesson(courseId: string, lessonId: string): Promise<ApiResponse<Lesson>> {
+    return this.request(`/courses/${courseId}/lessons/${lessonId}`);
+  }
+
+  static async updateLessonProgress(
+    courseId: string,
+    lessonId: string,
+    progress: { lastPositionSeconds: number; completed?: boolean }
+  ): Promise<ApiResponse<any>> {
+    return this.request(`/courses/${courseId}/lessons/${lessonId}/progress`, {
+      method: 'POST',
+      body: JSON.stringify(progress),
+    });
+  }
+
+  static async getCourseProgress(courseId: string): Promise<ApiResponse<any>> {
+    return this.request(`/courses/${courseId}/progress`);
+  }
+
 
   // Admin User Management Methods
   static async getUsers(params?: PaginationParams): Promise<ApiResponse<User[]>> {
