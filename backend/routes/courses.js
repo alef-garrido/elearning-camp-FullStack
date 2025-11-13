@@ -4,7 +4,11 @@ const {
     getCourse,
     addCourse,
     updateCourse,
-    deleteCourse
+    deleteCourse,
+    enrollCourse,
+    unenrollCourse,
+    getEnrolledUsers,
+    getEnrollmentStatus
 } = require('../controllers/courses');
 const Course = require('../models/Course');
 const advancedResults = require('../middleware/advancedResults');
@@ -25,8 +29,22 @@ router
 router
     .route('/:id')
     .get(getCourse)
-    .put(protect, authorize('publisher', 'admin'), updateCourse)
-    .delete(protect, authorize('publisher', 'admin'), deleteCourse);
+        .put(protect, authorize('publisher', 'admin'), updateCourse)
+        .delete(protect, authorize('publisher', 'admin'), deleteCourse);
+
+// Enrollment routes for courses
+router
+    .route('/:id/enroll')
+    .post(protect, enrollCourse)
+    .delete(protect, unenrollCourse);
+
+router
+    .route('/:id/enrolled')
+    .get(protect, getEnrolledUsers);
+
+router
+    .route('/:id/enrollment-status')
+    .get(protect, getEnrollmentStatus);
 
 
 module.exports = router;

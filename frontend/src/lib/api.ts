@@ -295,6 +295,77 @@ export class ApiClient {
     });
   }
 
+  // Enrollment Methods
+  static async getMyEnrollments(params?: PaginationParams): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/enrollments/my-enrollments?${query}`);
+  }
+
+  static async enrollCommunity(communityId: string): Promise<ApiResponse<any>> {
+    return this.request(`/communities/${communityId}/enroll`, {
+      method: 'POST',
+    });
+  }
+
+  static async unenrollCommunity(communityId: string): Promise<ApiResponse<any>> {
+    return this.request(`/communities/${communityId}/enroll`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async getCommunityEnrollments(communityId: string, params?: PaginationParams): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/communities/${communityId}/enrolled?${query}`);
+  }
+
+  static async getEnrollmentStatus(communityId: string): Promise<ApiResponse<{ enrolled: boolean }>> {
+    return this.request(`/communities/${communityId}/enrollment-status`);
+  }
+
+  static async unenrollUserFromCommunity(communityId: string, userId: string): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    query.set('userId', userId);
+    return this.request(`/communities/${communityId}/enroll?${query}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Course enrollment methods (mirror community conventions)
+  static async enrollCourse(courseId: string): Promise<ApiResponse<any>> {
+    return this.request(`/courses/${courseId}/enroll`, {
+      method: 'POST'
+    });
+  }
+
+  static async unenrollCourse(courseId: string): Promise<ApiResponse<any>> {
+    return this.request(`/courses/${courseId}/enroll`, {
+      method: 'DELETE'
+    });
+  }
+
+  static async getCourseEnrollments(courseId: string, params?: PaginationParams): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/courses/${courseId}/enrolled?${query}`);
+  }
+
+  static async getCourseEnrollmentStatus(courseId: string): Promise<ApiResponse<{ enrolled: boolean }>> {
+    return this.request(`/courses/${courseId}/enrollment-status`);
+  }
+
+  static async unenrollUserFromCourse(courseId: string, userId: string): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    query.set('userId', userId);
+    return this.request(`/courses/${courseId}/enroll?${query}`, {
+      method: 'DELETE'
+    });
+  }
+
   // Admin User Management Methods
   static async getUsers(params?: PaginationParams): Promise<ApiResponse<User[]>> {
     const query = new URLSearchParams();

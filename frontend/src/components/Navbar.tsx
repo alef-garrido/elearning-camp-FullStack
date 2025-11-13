@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, LogOut, User, Menu, Plus, GraduationCap } from "lucide-react";
+import { BookOpen, LogOut, User, Menu, Plus, GraduationCap, Users } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/use-auth";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
@@ -38,10 +38,7 @@ const NavbarComponent = () => {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
           <Link to="/communities" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-            Communities
-          </Link>
-          <Link to="/courses" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-            Courses
+            Explore Communities
           </Link>
 
           {isAuthenticated ? (
@@ -55,6 +52,10 @@ const NavbarComponent = () => {
                 <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                   <User className="mr-2 h-4 w-4" />
                   Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/my-enrollments')}>
+                  <Users className="mr-2 h-4 w-4" />
+                  My Enrollments
                 </DropdownMenuItem>
                 {canManageUsers && (
                   <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
@@ -127,6 +128,13 @@ const NavbarComponent = () => {
                     onClick={() => setOpen(false)}
                   >
                     Dashboard
+                  </Link>
+                  <Link
+                    to="/my-enrollments"
+                    className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+                    onClick={() => setOpen(false)}
+                  >
+                    My Enrollments
                   </Link>
                   {(canCreateCommunity || canCreateCourse) && (
                     <>

@@ -36,6 +36,7 @@ export interface Community {
   averageRating?: number;
   averageCost?: number;
   user: string;
+  enrollmentCount?: number;
   // Optional populated courses array (present when backend populates or frontend joins data)
   courses?: Course[];
   createdAt: string;
@@ -93,6 +94,22 @@ export interface CreateReviewInput {
   title: string;
   text: string;
   rating: number;
+}
+
+// Enrollment Interfaces
+export interface Enrollment {
+  _id: string;
+  user: User;
+  community: Community;
+  status: 'active' | 'cancelled';
+  enrolledAt: string;
+}
+
+export interface EnrolledCommunity {
+  _id: string;
+  community: Community & { enrollmentCount: number };
+  status: 'active' | 'cancelled';
+  enrolledAt: string;
 }
 
 // User Interfaces
