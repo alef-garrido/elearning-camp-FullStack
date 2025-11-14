@@ -32,8 +32,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    checkUserLoggedIn();
+    // Only attempt to fetch current user if we have a token stored.
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      checkUserLoggedIn();
+    } else {
+      // No token -> not authenticated
+      setIsLoading(false);
+    }
 
+    // Listen for auth state changes (login/logout) to re-check user
     window.addEventListener('authStateChange', checkUserLoggedIn);
 
     return () => {
