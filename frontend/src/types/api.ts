@@ -97,12 +97,21 @@ export interface CreateCourseInput {
   communityId: string;
 }
 
+// Lesson Progress State Type
+export type LessonProgressState = 'pending' | 'blocked' | 'in-progress' | 'completed';
+
 // Lesson Progress Interfaces
 export interface LessonProgress {
   lesson: string;
   lastPositionSeconds?: number;
   completed?: boolean;
+  state?: LessonProgressState;
   updatedAt?: string;
+}
+
+// Course Progress Summary: maps lesson ID to its progress state
+export interface CourseLessonStates {
+  [lessonId: string]: LessonProgressState;
 }
 
 // Review Interfaces

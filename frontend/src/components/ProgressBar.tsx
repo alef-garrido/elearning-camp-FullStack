@@ -7,8 +7,12 @@ interface ProgressBarProps {
 
 const ProgressBar = ({ lessons, completedLessonIds }: ProgressBarProps) => {
   const totalLessons = lessons.length;
-  const completedCount = completedLessonIds.length;
-  const percentComplete = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
+  // Ensure completed ids are unique and present in the lessons list
+  const lessonIdSet = new Set(lessons.map(l => l._id));
+  const uniqueCompleted = Array.from(new Set(completedLessonIds)).filter(id => lessonIdSet.has(id));
+  const completedCount = uniqueCompleted.length;
+  // Clamp percent to 0-100
+  const percentComplete = totalLessons > 0 ? Math.min(100, (completedCount / totalLessons) * 100) : 0;
 
   return (
     <div className="w-full p-4 bg-gray-100 rounded-lg">

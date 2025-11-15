@@ -1,21 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiClient } from '@/lib/api';
 import { Course, Lesson } from '@/types/api';
+import { useLessonProgress } from '@/hooks/use-lesson-progress';
 import LessonContentRenderer from '@/components/LessonContentRenderer';
 import MaterialsList from '@/components/MaterialsList';
 import LessonNav from '@/components/LessonNav';
 import ProgressBar from '@/components/ProgressBar';
 import LessonNotes from '@/components/LessonNotes';
+import { Button } from '@/components/ui/button';
+import { CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 const CoursePlayer = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const [course, setCourse] = useState<Course | null>(null);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
-  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [lessonNotes, setLessonNotes] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Memoize lessons array so we don't pass a new array reference to the hook every render
+  const lessonsMemo = useMemo(() => course?.lessons || [], [course?.lessons?.length, course?._id]);
+
+  // Use the lesson progress hook
+  const { lessonStates, getState, markInProgress, markComplete, isLocked, loading: progressLoading } = useLessonProgress(
+    courseId || '',
+    lessonsMemo
+  );
 
   useEffect(() => {
     if (!courseId) return;
@@ -25,17 +37,6 @@ const CoursePlayer = () => {
         setLoading(true);
         const res = await ApiClient.getCourseContent(courseId);
         setCourse(res.data);
-        
-        // Fetch progress to determine completed lessons
-        try {
-          const progressRes = await ApiClient.getCourseProgress(courseId);
-          const completedIds = progressRes.data
-            .filter((p: any) => p.completed)
-            .map((p: any) => p.lesson);
-          setCompletedLessons(completedIds);
-        } catch (err) {
-          console.warn('Could not fetch progress:', err);
-        }
         
         // Set the first lesson as active by default
         if (res.data.lessons && res.data.lessons.length > 0) {
@@ -52,9 +53,29 @@ const CoursePlayer = () => {
     fetchCourse();
   }, [courseId]);
 
-  const handleLessonComplete = (lessonId: string) => {
-    if (!completedLessons.includes(lessonId)) {
-      setCompletedLessons([...completedLessons, lessonId]);
+  // When user clicks on a lesson, set it active and mark as in-progress
+  const handleLessonAccess = async (lesson: Lesson) => {
+    if (isLocked(lesson._id)) {
+      toast.error('This lesson is locked. Complete previous lessons first.');
+      return;
+    }
+    setActiveLesson(lesson);
+    try {
+      await markInProgress(lesson._id);
+    } catch (err) {
+      console.error('Failed to update lesson state:', err);
+    }
+  };
+
+  // Explicit button to mark lesson as complete
+  const handleMarkComplete = async () => {
+    if (!activeLesson || !courseId) return;
+    try {
+      await markComplete(activeLesson._id);
+      toast.success('Lesson completed! 🎉');
+    } catch (err) {
+      console.error('Failed to mark lesson complete:', err);
+      toast.error('Failed to save progress');
     }
   };
 
@@ -62,7 +83,8 @@ const CoursePlayer = () => {
     if (!course || !activeLesson) return;
     const currentIndex = course.lessons!.findIndex(l => l._id === activeLesson._id);
     if (currentIndex > 0) {
-      setActiveLesson(course.lessons![currentIndex - 1]);
+      const prevLesson = course.lessons![currentIndex - 1];
+      handleLessonAccess(prevLesson);
     }
   };
 
@@ -70,7 +92,8 @@ const CoursePlayer = () => {
     if (!course || !activeLesson) return;
     const currentIndex = course.lessons!.findIndex(l => l._id === activeLesson._id);
     if (currentIndex < course.lessons!.length - 1) {
-      setActiveLesson(course.lessons![currentIndex + 1]);
+      const nextLesson = course.lessons![currentIndex + 1];
+      handleLessonAccess(nextLesson);
     }
   };
 
@@ -80,7 +103,6 @@ const CoursePlayer = () => {
       ...lessonNotes,
       [activeLesson._id]: notes,
     });
-    // In a real app, you'd save these to the backend
   };
 
   const handleDeleteNotes = async () => {
@@ -91,7 +113,16 @@ const CoursePlayer = () => {
     });
   };
 
-  if (loading) {
+  // Compute completedLessons for ProgressBar (backward compatibility)
+  // Only include completed lessons that still exist on the course (prevent counting stale ids)
+  const lessonIdsSet = new Set((course?.lessons || []).map(l => l._id));
+  const completedLessons = Object.entries(lessonStates)
+    .filter(([lessonId, state]) => state === 'completed' && lessonIdsSet.has(lessonId))
+    .map(([lessonId]) => lessonId);
+
+  const isCurrentLessonCompleted = activeLesson && getState(activeLesson._id) === 'completed';
+
+  if (loading || progressLoading) {
     return <div>Loading...</div>;
   }
 
@@ -123,13 +154,35 @@ const CoursePlayer = () => {
                   lesson={activeLesson}
                   courseId={course._id}
                   onEnded={() => {
-                    handleLessonComplete(activeLesson._id);
+                    // Optional: auto-advance on onEnded, but don't auto-complete
                     handleNextLesson();
                   }}
                 />
+
+                {/* Lesson Info & Mark Complete */}
                 <div className="mt-4 p-4 border rounded-lg bg-white">
-                  <h2 className="text-2xl font-bold">{activeLesson.title}</h2>
-                  <p className="text-gray-600 mt-2">{activeLesson.description}</p>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold">{activeLesson.title}</h2>
+                      <p className="text-gray-600 mt-2">{activeLesson.description}</p>
+                    </div>
+                    {isCurrentLessonCompleted && (
+                      <div className="text-green-600 flex items-center gap-1 text-sm font-semibold">
+                        <CheckCircle size={18} />
+                        Completed
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mark Complete Button */}
+                  {!isCurrentLessonCompleted && (
+                    <Button
+                      onClick={handleMarkComplete}
+                      className="mt-4 bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      Mark as Complete
+                    </Button>
+                  )}
                   
                   {/* Attachments */}
                   {activeLesson.attachments && activeLesson.attachments.length > 0 && (
@@ -179,8 +232,8 @@ const CoursePlayer = () => {
             <MaterialsList
               lessons={course.lessons || []}
               activeLessonId={activeLesson?._id}
-              onLessonClick={(lesson) => setActiveLesson(lesson)}
-              completedLessons={completedLessons}
+              onLessonClick={handleLessonAccess}
+              lessonStates={lessonStates}
             />
           </div>
         </div>
@@ -190,3 +243,4 @@ const CoursePlayer = () => {
 };
 
 export default CoursePlayer;
+
