@@ -112,15 +112,21 @@ const EditCourse = () => {
         membership: formData.membership,
         minimumSkill: formData.minimumSkill,
         scholarshipsAvailable: formData.scholarshipsAvailable,
-        lessons: lessons.map((l, i) => ({
-          title: l.title,
-          type: l.type,
-          url: l.url,
-          durationSeconds: l.durationSeconds,
-          order: l.order ?? (i + 1),
-          description: l.description,
-          attachments: (l as any).attachments || []
-        }))
+        lessons: lessons.map((l, i) => {
+          // Preserve existing lesson _id when present and not a temporary client-side id
+          const hasRealId = l._id && String(l._id).indexOf('new-') !== 0;
+          const lessonPayload: any = {
+            title: l.title,
+            type: l.type,
+            url: l.url,
+            durationSeconds: l.durationSeconds,
+            order: l.order ?? (i + 1),
+            description: l.description,
+            attachments: (l as any).attachments || []
+          };
+          if (hasRealId) lessonPayload._id = l._id;
+          return lessonPayload;
+        })
       };
 
       const res = await ApiClient.updateCourse(id!, payload);
