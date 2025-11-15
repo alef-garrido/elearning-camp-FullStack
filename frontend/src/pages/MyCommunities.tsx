@@ -138,7 +138,8 @@ const MyCommunities = () => {
                   className="w-full"
                   onClick={(e) => {
                     e.preventDefault();
-                    navigate(`/courses/new?communityId=${community._id}`);
+                    // Route matches the CreateCourse path defined in App.tsx
+                    navigate(`/courses/create?communityId=${community._id}`);
                   }}
                 >
                   Add New Course
