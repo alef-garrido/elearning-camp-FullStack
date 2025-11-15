@@ -1,6 +1,14 @@
 import { Lesson } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Download, ExternalLink } from 'lucide-react';
+import { ApiClient } from '@/lib/api';
+import { toast } from 'sonner';
+
+interface PDFLessonProps {
+  lesson: Lesson;
+  courseId: string;
+  onEnded?: () => void;
+}
 
 interface PDFLessonProps {
   lesson: Lesson;
@@ -12,7 +20,7 @@ interface PDFLessonProps {
  * Handles: embedding PDF viewer, download link, opens in new tab option
  * Note: Uses iframe embed for simplicity; can be upgraded to react-pdf for more control
  */
-const PDFLesson = ({ lesson }: PDFLessonProps) => {
+const PDFLesson = ({ lesson, courseId, onEnded }: PDFLessonProps) => {
   if (!lesson.url) {
     return (
       <div className="p-6 rounded-lg bg-red-50 border border-red-200">
@@ -57,6 +65,27 @@ const PDFLesson = ({ lesson }: PDFLessonProps) => {
             Download PDF
           </Button>
         </a>
+        {/* Mark complete button for readers */}
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={async () => {
+            try {
+              await ApiClient.updateLessonProgress(courseId, lesson._id, {
+                lastPositionSeconds: lesson.durationSeconds || 0,
+                completed: true,
+              });
+              toast.success(`Marked "${lesson.title}" as complete`);
+              onEnded?.();
+            } catch (err) {
+              console.error('Failed to mark complete', err);
+              toast.error('Failed to mark lesson complete');
+            }
+          }}
+          className="gap-2"
+        >
+          Mark Complete
+        </Button>
       </div>
 
       {lesson.durationSeconds && (

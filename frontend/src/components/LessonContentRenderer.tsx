@@ -26,9 +26,9 @@ const LessonContentRenderer = ({
         <VideoLesson lesson={lesson} courseId={courseId} onEnded={onEnded} />
       );
     case 'pdf':
-      return <PDFLesson lesson={lesson} courseId={courseId} />;
+      return <PDFLesson lesson={lesson} courseId={courseId} onEnded={onEnded} />;
     case 'article':
-      return <ArticleLesson lesson={lesson} courseId={courseId} />;
+      return <ArticleLesson lesson={lesson} courseId={courseId} onEnded={onEnded} />;
     default:
       return (
         <div className="p-6 rounded-lg bg-amber-50 border border-amber-200">

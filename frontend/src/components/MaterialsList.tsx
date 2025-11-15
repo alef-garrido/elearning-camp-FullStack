@@ -22,15 +22,22 @@ const MaterialsList = ({
           const isCompleted = completedLessons.includes(lesson._id);
           const isActive = lesson._id === activeLessonId;
 
+          // Determine unlocking: allow access up to the next lesson after the last completed one.
+          // If no lessons completed, only the first lesson (index 0) is unlocked.
+          const lastCompletedIndex = lessons.reduce((acc, l, i) => (completedLessons.includes(l._id) ? i : acc), -1);
+          const unlockedUpTo = Math.max(0, lastCompletedIndex + 1);
+          const isLocked = index > unlockedUpTo && !isCompleted && !isActive;
+
           return (
             <li
               key={lesson._id}
-              className={`p-3 rounded-md cursor-pointer flex items-center justify-between transition-colors ${
+              className={`p-3 rounded-md ${isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'} flex items-center justify-between transition-colors ${
                 isActive
                   ? 'bg-blue-100 border-l-4 border-blue-500'
-                  : 'hover:bg-gray-100'
+                  : ''
               }`}
-              onClick={() => onLessonClick(lesson)}
+              onClick={() => !isLocked && onLessonClick(lesson)}
+              title={isLocked ? 'Locked — complete previous lessons to unlock' : undefined}
             >
               <div className="flex items-center">
                 <div className="mr-3 text-gray-500">
@@ -38,8 +45,10 @@ const MaterialsList = ({
                     <CheckCircle className="text-green-500" />
                   ) : isActive ? (
                     <PlayCircle className="text-blue-500" />
+                  ) : isLocked ? (
+                    <Lock size={18} />
                   ) : (
-                    <Lock size={20} />
+                    <PlayCircle className="text-gray-500" />
                   )}
                 </div>
                 <div>

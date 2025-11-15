@@ -3,6 +3,14 @@ import { Lesson } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, Printer } from 'lucide-react';
 import { useState } from 'react';
+import { ApiClient } from '@/lib/api';
+import { toast } from 'sonner';
+
+interface ArticleLessonProps {
+  lesson: Lesson;
+  courseId: string;
+  onEnded?: () => void;
+}
 
 interface ArticleLessonProps {
   lesson: Lesson;
@@ -14,7 +22,7 @@ interface ArticleLessonProps {
  * Handles: rendering markdown content, copy code blocks, print support
  * Note: Uses basic HTML rendering; for full markdown, can upgrade to marked or markdown-it
  */
-const ArticleLesson = ({ lesson }: ArticleLessonProps) => {
+const ArticleLesson = ({ lesson, courseId, onEnded }: ArticleLessonProps) => {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // Simple markdown-like content rendering
@@ -136,6 +144,26 @@ const ArticleLesson = ({ lesson }: ArticleLessonProps) => {
         >
           <Printer className="h-4 w-4" />
           Print Article
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={async () => {
+            try {
+              await ApiClient.updateLessonProgress(courseId, lesson._id, {
+                lastPositionSeconds: lesson.durationSeconds || 0,
+                completed: true,
+              });
+              toast.success(`Marked "${lesson.title}" as complete`);
+              onEnded?.();
+            } catch (err) {
+              console.error('Failed to mark article complete', err);
+              toast.error('Failed to mark lesson complete');
+            }
+          }}
+          className="gap-2"
+        >
+          Mark Complete
         </Button>
       </div>
 
