@@ -199,37 +199,131 @@ const EditCourse = () => {
                   {lessons.map((lesson, idx) => (
                     <Card key={lesson._id || idx} className="p-4">
                       <div className="grid gap-3 sm:grid-cols-3">
-                        <Input placeholder="Title" value={lesson.title} onChange={(e) => updateLesson(idx, { title: e.target.value })} />
-                        <Select value={lesson.type} onValueChange={(v) => updateLesson(idx, { type: v as any })}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="video">Video</SelectItem>
-                            <SelectItem value="pdf">PDF</SelectItem>
-                            <SelectItem value="article">Article</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input placeholder="URL (video/pdf)" value={lesson.url} onChange={(e) => updateLesson(idx, { url: e.target.value })} />
+                        <div className="space-y-2">
+                          <Label htmlFor={`lesson-title-${idx}`}>Title *</Label>
+                          <Input id={`lesson-title-${idx}`} placeholder="Lesson title" required value={lesson.title} onChange={(e) => updateLesson(idx, { title: e.target.value })} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`lesson-type-${idx}`}>Type *</Label>
+                          <Select value={lesson.type} onValueChange={(v) => updateLesson(idx, { type: v as any })}>
+                            <SelectTrigger id={`lesson-type-${idx}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="video">Video</SelectItem>
+                              <SelectItem value="pdf">PDF</SelectItem>
+                              <SelectItem value="article">Article</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`lesson-order-${idx}`}>Order *</Label>
+                          <Input id={`lesson-order-${idx}`} placeholder="Order" type="number" min={1} required value={String(lesson.order ?? idx + 1)} onChange={(e) => updateLesson(idx, { order: Number(e.target.value) })} />
+                        </div>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2 mt-3">
-                        <Input placeholder="Duration seconds" type="number" value={String(lesson.durationSeconds || 0)} onChange={(e) => updateLesson(idx, { durationSeconds: Number(e.target.value) })} />
-                        <Input placeholder="Order" type="number" value={String(lesson.order ?? idx + 1)} onChange={(e) => updateLesson(idx, { order: Number(e.target.value) })} />
-                      </div>
-
+                      {/* Lesson header so editors always see which lesson they're editing */}
                       <div className="mt-3">
-                        <Textarea placeholder="Lesson description" value={lesson.description} onChange={(e) => updateLesson(idx, { description: e.target.value })} className="h-20" />
+                        <h4 className="text-lg sm:text-xl font-semibold">{lesson.title?.trim() ? lesson.title : `Lesson ${idx + 1}`}</h4>
+                        {lesson.description ? <p className="text-sm text-muted-foreground mt-1">{lesson.description}</p> : null}
                       </div>
 
-                      <div className="flex gap-2 justify-end mt-3">
+                      {/* Type-specific inputs */}
+                      {lesson.type === 'video' && (
+                        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-sm font-medium">Editing: {lesson.title?.trim() ? lesson.title : `Lesson ${idx + 1}`}</h5>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`lesson-url-${idx}`}>Video URL *</Label>
+                            <Input id={`lesson-url-${idx}`} placeholder="https://example.com/video.mp4 or embed URL" required value={lesson.url} onChange={(e) => updateLesson(idx, { url: e.target.value })} />
+                            <p className="text-xs text-muted-foreground">Support: MP4, WebM, or streaming URLs</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`lesson-duration-${idx}`}>Duration (minutes) *</Label>
+                            <Input 
+                              id={`lesson-duration-${idx}`} 
+                              placeholder="10" 
+                              type="number" 
+                              min={1}
+                              required
+                              value={String(Math.round((lesson.durationSeconds || 0) / 60))} 
+                              onChange={(e) => updateLesson(idx, { durationSeconds: Number(e.target.value) * 60 })} 
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {lesson.type === 'pdf' && (
+                        <div className="mt-4 p-4 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-sm font-medium">Editing: {lesson.title?.trim() ? lesson.title : `Lesson ${idx + 1}`}</h5>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`lesson-url-${idx}`}>PDF URL *</Label>
+                            <Input id={`lesson-url-${idx}`} placeholder="https://example.com/document.pdf" required value={lesson.url} onChange={(e) => updateLesson(idx, { url: e.target.value })} />
+                            <p className="text-xs text-muted-foreground">Direct link to PDF file</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`lesson-duration-${idx}`}>Reading Time (minutes) *</Label>
+                            <Input 
+                              id={`lesson-duration-${idx}`} 
+                              placeholder="15" 
+                              type="number" 
+                              min={1}
+                              required
+                              value={String(Math.round((lesson.durationSeconds || 0) / 60))} 
+                              onChange={(e) => updateLesson(idx, { durationSeconds: Number(e.target.value) * 60 })} 
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {lesson.type === 'article' && (
+                        <div className="mt-4 p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-sm font-medium">Editing: {lesson.title?.trim() ? lesson.title : `Lesson ${idx + 1}`}</h5>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`lesson-url-${idx}`}>Article Content (Markdown) *</Label>
+                            <Textarea 
+                              id={`lesson-url-${idx}`} 
+                              placeholder="Write your article in markdown format. Use ```code``` for code blocks, # for headings, **bold** for emphasis, etc." 
+                              required
+                              value={lesson.url} 
+                              onChange={(e) => updateLesson(idx, { url: e.target.value })} 
+                              className="h-40 font-mono text-sm"
+                            />
+                            <p className="text-xs text-muted-foreground">Markdown support: headings (#, ##), bold (**text**), code blocks (```code```)</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`lesson-duration-${idx}`}>Reading Time (minutes) *</Label>
+                            <Input 
+                              id={`lesson-duration-${idx}`} 
+                              placeholder="5" 
+                              type="number" 
+                              min={1}
+                              required
+                              value={String(Math.round((lesson.durationSeconds || 0) / 60))} 
+                              onChange={(e) => updateLesson(idx, { durationSeconds: Number(e.target.value) * 60 })} 
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-4 space-y-2">
+                        <Label htmlFor={`lesson-desc-${idx}`}>Description</Label>
+                        <Textarea id={`lesson-desc-${idx}`} placeholder="Brief description of what learners will learn..." value={lesson.description} onChange={(e) => updateLesson(idx, { description: e.target.value })} className="h-20" />
+                      </div>
+
+                      <div className="flex gap-2 justify-end mt-4">
                         <Button variant="outline" onClick={() => removeLesson(idx)}>Remove</Button>
                       </div>
                     </Card>
                   ))}
 
                   <div>
-                    <Button onClick={addLesson}>Add Lesson</Button>
+                    <Button onClick={addLesson} variant="secondary">Add Lesson</Button>
                   </div>
                 </div>
               </div>

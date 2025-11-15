@@ -181,24 +181,20 @@ const CourseDetail = () => {
               <h2 className="text-xl sm:text-2xl font-semibold mb-4">What You'll Learn</h2>
               <Card>
                 <CardContent className="pt-6">
-                  <ul className="space-y-2 text-sm sm:text-base text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Comprehensive understanding of modern web development</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Build real-world projects from scratch</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Master industry-standard tools and practices</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Deploy applications to production environments</span>
-                    </li>
-                  </ul>
+                  {course.lessons && course.lessons.length > 0 ? (
+                    <ul className="space-y-2 text-sm sm:text-base text-muted-foreground">
+                      {course.lessons.map((lesson, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                          <span>{lesson.title}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No lessons have been added to this course yet.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>

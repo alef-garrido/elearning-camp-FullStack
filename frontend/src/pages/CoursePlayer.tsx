@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiClient } from '@/lib/api';
 import { Course, Lesson } from '@/types/api';
-import VideoPlayer from '@/components/VideoPlayer';
+import LessonContentRenderer from '@/components/LessonContentRenderer';
 import MaterialsList from '@/components/MaterialsList';
 import LessonNav from '@/components/LessonNav';
 import ProgressBar from '@/components/ProgressBar';
@@ -119,7 +119,7 @@ const CoursePlayer = () => {
           <div className="md:col-span-2">
             {activeLesson && (
               <>
-                <VideoPlayer
+                <LessonContentRenderer
                   lesson={activeLesson}
                   courseId={course._id}
                   onEnded={() => {
