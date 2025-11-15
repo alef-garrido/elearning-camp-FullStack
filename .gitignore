@@ -519,3 +519,4 @@ FodyWeavers.xsd
 # Next.js build
 **/.next/
 **/out/
+.gemini/
