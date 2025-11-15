@@ -220,7 +220,57 @@ exports.updateCourse = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse(`User ${req.user.id} is not authorized to update course ${course._id}`, 401));
     }
 
-    course = await Course.findByIdAndUpdate(req.params.id, req.body, {
+    // Preserve lesson _id values where possible to avoid breaking student progress
+    // when publishers edit lessons. If the incoming payload includes lessons,
+    // try to match them to existing lessons by title/url/type and reuse the
+    // existing subdocument _id when a match is found.
+    const updatePayload = { ...req.body };
+    if (Array.isArray(req.body.lessons) && course.lessons && course.lessons.length > 0) {
+        const existingLessons = course.lessons;
+                const matched = [];
+                const created = [];
+                updatePayload.lessons = req.body.lessons.map((incoming) => {
+                        // If the client provided an _id for the lesson, keep it as-is and mark as matched
+                        if (incoming._id) {
+                                matched.push({ incoming, matchedId: incoming._id });
+                                return incoming;
+                        }
+
+                        // Try to find a reasonable match in existing lessons
+                        const match = existingLessons.find((el) => (
+                                el.title === incoming.title &&
+                                ( (!incoming.url && !el.url) || el.url === incoming.url ) &&
+                                el.type === incoming.type
+                        ));
+
+                        if (match) {
+                                matched.push({ incoming, matchedId: match._id });
+                                return { ...incoming, _id: match._id };
+                        }
+
+                        // No match — return incoming as new lesson
+                        created.push(incoming);
+                        return incoming;
+                });
+
+                // Optional debug logging controlled via environment variable
+                try {
+                    const shouldLog = process.env.LOG_LESSON_MATCHING === 'true';
+                    if (shouldLog) {
+                        console.log(`Lesson matching summary for course ${course._id}: matched=${matched.length}, created=${created.length}`);
+                        if (matched.length > 0) {
+                            matched.forEach(m => console.log(`  Matched incoming title='${m.incoming.title}' -> existingId=${m.matchedId}`));
+                        }
+                        if (created.length > 0) {
+                            created.forEach(c => console.log(`  New lesson incoming title='${c.title}' type='${c.type}' url='${c.url || ''}'`));
+                        }
+                    }
+                } catch (e) {
+                    // swallow logging errors
+                }
+    }
+
+    course = await Course.findByIdAndUpdate(req.params.id, updatePayload, {
         new: true,
         runValidators: true
     });
@@ -252,5 +302,141 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
     res.status(200).json({
         success: true,
         data: {}
+    });
+});
+
+// @desc    Get course content (lessons) for an enrolled user
+// @route   GET /api/v1/courses/:courseId/content
+// @access  Private
+exports.getCourseContent = asyncHandler(async (req, res, next) => {
+    // checkEnrollment middleware already ran, so we have req.enrollment
+    const course = await Course.findById(req.params.courseId).select('+lessons');
+  
+    if (!course) {
+      return next(new ErrorResponse(`Course not found with id of ${req.params.courseId}`, 404));
+    }
+  
+    // Return course with lessons
+    res.status(200).json({
+      success: true,
+      data: course,
+    });
+});
+
+// @desc    Get a single lesson for an enrolled user
+// @route   GET /api/v1/courses/:courseId/lessons/:lessonId
+// @access  Private
+exports.getLesson = asyncHandler(async (req, res, next) => {
+    const { courseId, lessonId } = req.params;
+  
+    const course = await Course.findById(courseId).select('+lessons');
+  
+    if (!course) {
+      return next(new ErrorResponse(`Course not found with id of ${courseId}`, 404));
+    }
+  
+    const lesson = course.lessons.id(lessonId);
+  
+    if (!lesson) {
+      return next(new ErrorResponse(`Lesson not found with id of ${lessonId}`, 404));
+    }
+  
+    // Here you would generate a signed URL for lesson.url if it's a private asset
+    // For now, we'll just return the lesson as is.
+  
+    res.status(200).json({
+      success: true,
+      data: lesson,
+    });
+});
+
+// @desc    Update user's progress on a lesson
+// @route   POST /api/v1/courses/:courseId/lessons/:lessonId/progress
+// @access  Private
+exports.updateLessonProgress = asyncHandler(async (req, res, next) => {
+        const { lessonId } = req.params;
+        const { lastPositionSeconds, completed } = req.body;
+
+        // checkEnrollment middleware provides the enrollment
+        const enrollment = req.enrollment;
+        const enrollmentId = enrollment._id;
+
+        // If no meaningful payload provided, return current progress
+        if (lastPositionSeconds === undefined && completed === undefined) {
+            return res.status(200).json({ success: true, data: enrollment.progress });
+        }
+
+        // Attempt to atomically update an existing progress entry for this lesson
+        const setOps = {};
+        if (lastPositionSeconds !== undefined) setOps['progress.$.lastPositionSeconds'] = lastPositionSeconds;
+        if (completed !== undefined) setOps['progress.$.completed'] = completed;
+        setOps['progress.$.updatedAt'] = Date.now();
+
+        let updatedEnrollment = null;
+
+        // Try to update array element in place
+        if (Object.keys(setOps).length > 0) {
+            updatedEnrollment = await Enrollment.findOneAndUpdate(
+                { _id: enrollmentId, 'progress.lesson': lessonId },
+                { $set: setOps },
+                { new: true }
+            );
+        }
+
+        // If no existing progress entry was updated, push a new entry atomically
+        if (!updatedEnrollment) {
+            const newEntry = {
+                lesson: lessonId,
+                lastPositionSeconds: lastPositionSeconds !== undefined ? lastPositionSeconds : 0,
+                completed: completed !== undefined ? completed : false,
+                updatedAt: Date.now(),
+            };
+
+            updatedEnrollment = await Enrollment.findByIdAndUpdate(
+                enrollmentId,
+                { $push: { progress: newEntry } },
+                { new: true }
+            );
+        }
+
+        if (!updatedEnrollment) {
+            return next(new ErrorResponse('Failed to update enrollment progress', 500));
+        }
+
+        res.status(200).json({
+            success: true,
+            data: updatedEnrollment.progress,
+        });
+});
+
+// @desc    Mark a course as complete for the user
+// @route   POST /api/v1/courses/:courseId/complete
+// @access  Private
+exports.completeCourse = asyncHandler(async (req, res, next) => {
+    const enrollment = req.enrollment;
+  
+    // You might want to add logic here to verify all lessons are completed
+    // For now, we'll just update the enrollment status or a new field.
+    // Let's add a `completedAt` field to the enrollment schema.
+  
+    enrollment.status = 'completed'; // Or a new status
+    // enrollment.completedAt = Date.now(); // If you add this field to the schema
+  
+    await enrollment.save();
+  
+    res.status(200).json({
+      success: true,
+      data: enrollment,
+    });
+});
+
+// @desc    Get user's progress for a course
+// @route   GET /api/v1/courses/:courseId/progress
+// @access  Private
+exports.getCourseProgress = asyncHandler(async (req, res, next) => {
+    // The checkEnrollment middleware provides the enrollment object
+    res.status(200).json({
+      success: true,
+      data: req.enrollment.progress,
     });
 });

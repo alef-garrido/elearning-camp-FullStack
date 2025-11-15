@@ -27,6 +27,26 @@ const CourseSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    lessons: [
+        {
+            title: String,
+            type: {
+                type: String,
+                enum: ['video', 'pdf', 'article'],
+            },
+            url: String,
+            durationSeconds: Number,
+            order: Number,
+            description: String,
+            attachments: [
+                {
+                    name: String,
+                    url: String,
+                    type: String,
+                }
+            ]
+        }
+    ],
     user: {
         type: mongoose.Schema.ObjectId,
         ref: 'User',

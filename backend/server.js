@@ -146,8 +146,11 @@ app.use('/api/v1', apiLimiter);
 // Prevent http param pollution
 app.use(hpp());
 
-// Set static folder
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve uploaded files (images, attachments) at a predictable path
+// and expose API docs under /docs instead of the root to avoid
+// accidentally returning the API docs HTML for client-side routes.
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+app.use('/docs', express.static(path.join(__dirname, 'public')));
 
 // Mount routers - order matters for nested routes
 app.use('/api/v1/auth', auth);

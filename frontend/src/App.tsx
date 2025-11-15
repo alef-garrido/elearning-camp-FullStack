@@ -7,10 +7,13 @@ import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Communities from "./pages/Communities";
 import CreateCommunity from "./pages/CreateCommunity";
+import EditCommunity from "./pages/EditCommunity";
 import CommunityDetail from "./pages/CommunityDetail";
 import Courses from "./pages/Courses";
 import CreateCourse from "./pages/CreateCourse";
 import CourseDetail from "./pages/CourseDetail";
+import CoursePlayer from "./pages/CoursePlayer";
+import EditCourse from "./pages/EditCourse";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/Layout";
@@ -30,9 +33,12 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/communities" element={<Communities />} />
+            <Route path="/communities/:id/edit" element={<EditCommunity />} />
             <Route path="/communities/:id" element={<CommunityDetail />} />
             <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/:id/edit" element={<EditCourse />} />
             <Route path="/courses/:id" element={<CourseDetail />} />
+            <Route path="/courses/:courseId/player" element={<CoursePlayer />} />
             <Route path="/dashboard" element={<Dashboard />} />
 
             {/* Admin routes */}

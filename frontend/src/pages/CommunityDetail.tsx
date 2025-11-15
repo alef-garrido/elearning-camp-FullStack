@@ -308,8 +308,13 @@ const CommunityDetail = () => {
                             key={course._id}
                             className="flex flex-col hover:shadow-lg transition-shadow cursor-pointer"
                             onClick={() => {
-                              setSelectedCourse(course);
-                              setShowCourseEnroll(true);
+                              // If enrolled, go to player; otherwise show enroll modal
+                              if (courseEnrollments[course._id]) {
+                                navigate(`/courses/${course._id}/player`);
+                              } else {
+                                setSelectedCourse(course);
+                                setShowCourseEnroll(true);
+                              }
                             }}
                           >
                             <CardHeader>
@@ -333,7 +338,7 @@ const CommunityDetail = () => {
                             <div className="px-6 py-4 border-t">
                               {courseEnrollments[course._id] ? (
                                 <Badge className="w-full justify-center bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                  Enrolled
+                                  Enrolled ✓
                                 </Badge>
                               ) : (
                                 <Button

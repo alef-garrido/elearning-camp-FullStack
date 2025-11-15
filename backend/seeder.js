@@ -3,13 +3,14 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 
 // Load env vars
-dotenv.config({ path: './config/config.env' });
+dotenv.config({ path: __dirname + '/config/config.env' });
 
 // Load models
 const Community = require('./models/Community');
 const Course = require('./models/Course');
 const User = require('./models/User');
 const Review = require('./models/Review');
+const Enrollment = require('./models/Enrollment');
 
 // Connect to DB
 mongoose.connect(process.env.MONGO_URI);
@@ -27,6 +28,9 @@ const users = JSON.parse(
 const reviews = JSON.parse(
   fs.readFileSync(`${__dirname}/_data/reviews.json`, 'utf-8')
 );
+const enrollments = JSON.parse(
+  fs.readFileSync(`${__dirname}/_data/enrollments.json`, 'utf-8')
+);
 
 // Import into DB
 const importData = async () => {
@@ -35,6 +39,7 @@ const importData = async () => {
     await Course.create(courses);
     await User.create(users);
     await Review.create(reviews);
+    await Enrollment.create(enrollments);
     console.log('Data Imported...');
     process.exit();
   } catch (err) {
@@ -45,10 +50,15 @@ const importData = async () => {
 // Delete data
 const deleteData = async () => {
   try {
-    await Community.deleteMany();
-    await Course.deleteMany();
-    await User.deleteMany();
-    await Review.deleteMany();
+    await Community.deleteMany({});
+    await Course.deleteMany({});
+    await User.deleteMany({});
+    await Review.deleteMany({});
+    await Enrollment.deleteMany({});
+    
+    // Drop indexes to clear old constraints
+    await Enrollment.collection.dropIndexes().catch(() => {});
+    
     console.log('Data Destroyed...');
     process.exit();
   } catch (err) {

@@ -2,7 +2,7 @@ import { Clock, DollarSign, Award, Edit3, Trash2 } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Course } from "@/types/api";
-import { Link } from "react-router-dom";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
@@ -21,8 +21,57 @@ const skillColors = {
 
 export const CourseCard = ({ course }: CourseCardProps) => {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const [isChecking, setIsChecking] = useState(false);
   const isOwner = user && (isAdmin || user._id === course.user);
+
+  const handleCardClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Wait for auth to load
+    if (authLoading) {
+      console.log('[CourseCard] Auth still loading, waiting...');
+      return;
+    }
+    
+    // If user is not logged in, always go to course detail
+    if (!user) {
+      console.log('[CourseCard] No user logged in, going to course detail');
+      navigate(`/courses/${course._id}`);
+      return;
+    }
+    
+    console.log('[CourseCard] User logged in:', user.email, 'User ID:', user._id);
+    setIsChecking(true);
+    try {
+      console.log('[CourseCard] Fetching enrollment status for course:', course._id);
+      const response = await ApiClient.getCourseEnrollmentStatus(course._id);
+      console.log('[CourseCard] Enrollment status response:', JSON.stringify(response));
+      
+      const isEnrolled = response?.data?.enrolled === true;
+      console.log('[CourseCard] Is enrolled?', isEnrolled);
+      
+      if (isEnrolled) {
+        console.log('[CourseCard] ✅ User IS enrolled - navigating to PLAYER');
+        navigate(`/courses/${course._id}/player`);
+      } else {
+        console.log('[CourseCard] ❌ User is NOT enrolled - navigating to DETAIL');
+        navigate(`/courses/${course._id}`);
+      }
+    } catch (err: any) {
+      console.error('[CourseCard] ❌ Error checking enrollment:', err.message);
+      console.error('[CourseCard] Error details:', {
+        status: err.status,
+        message: err.message,
+        responseData: err.response?.data
+      });
+      console.log('[CourseCard] Falling back to course detail');
+      navigate(`/courses/${course._id}`);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -37,9 +86,11 @@ export const CourseCard = ({ course }: CourseCardProps) => {
       toast.error(err.message || 'Failed to delete course');
     }
   };
+  
   return (
-    <Link to={`/courses/${course._id}`}>
-      <Card className="overflow-hidden hover:shadow-medium transition-all duration-300 group cursor-pointer bg-gradient-card border-border/50">
+    <div onClick={handleCardClick} className="cursor-pointer">
+      <Card className="overflow-hidden hover:shadow-medium transition-all duration-300 group bg-gradient-card border-border/50"
+            style={{ opacity: isChecking ? 0.7 : 1, pointerEvents: isChecking ? 'none' : 'auto' }}>
         <div className="aspect-video bg-gradient-to-br from-primary to-accent relative overflow-hidden">
           <div className="w-full h-full flex items-center justify-center backdrop-blur-sm bg-black/10">
             <Award className="h-16 w-16 text-primary-foreground/40" />
@@ -110,6 +161,6 @@ export const CourseCard = ({ course }: CourseCardProps) => {
           </div>
         </div>
       </Card>
-    </Link>
+    </div>
   );
 };
