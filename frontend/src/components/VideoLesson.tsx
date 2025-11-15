@@ -40,6 +40,7 @@ const VideoLesson = ({ lesson, courseId, onEnded }: VideoLessonProps) => {
 
   const ytId = lesson.url ? extractYouTubeId(lesson.url) : null;
   const isYouTube = Boolean(ytId);
+  const savedPosition = useRef<number>(0);
 
   // Function to save progress
   const saveProgress = async (completed = false) => {
@@ -116,6 +117,69 @@ const VideoLesson = ({ lesson, courseId, onEnded }: VideoLessonProps) => {
     };
   }, [lesson._id, courseId]);
 
+  // Fetch saved progress for this lesson and seek when ready
+  useEffect(() => {
+    let mounted = true;
+
+    const applySavedPositionToNative = (pos: number) => {
+      const v = videoRef.current;
+      if (!v) return;
+      const trySet = () => {
+        try {
+          // Only set if within duration
+          if (pos > 0 && (!isNaN(v.duration) ? pos < v.duration : true)) {
+            v.currentTime = pos;
+          }
+        } catch (e) {
+          // ignore
+        }
+      };
+
+      if (v.readyState >= 1) {
+        trySet();
+      } else {
+        const onLoaded = () => {
+          trySet();
+          v.removeEventListener('loadedmetadata', onLoaded);
+        };
+        v.addEventListener('loadedmetadata', onLoaded);
+      }
+    };
+
+    const fetchProgress = async () => {
+      try {
+        const res = await ApiClient.getCourseProgress(courseId);
+        if (!mounted) return;
+        const entry = res.data.find((p: any) => p.lesson === lesson._id);
+        const pos = entry?.lastPositionSeconds || 0;
+        savedPosition.current = pos;
+
+        // Apply immediately for native video
+        if (!isYouTube && pos > 0) {
+          applySavedPositionToNative(pos);
+        }
+
+        // For YouTube, if player already exists, seek now
+        if (isYouTube && playerRef.current && typeof playerRef.current.seekTo === 'function' && pos > 0) {
+          try {
+            playerRef.current.seekTo(pos, true);
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (err) {
+        // ignore progress fetch errors
+        console.warn('Could not fetch lesson progress for resume', err);
+      }
+    };
+
+    fetchProgress();
+
+    return () => {
+      mounted = false;
+    };
+  }, [courseId, lesson._id, isYouTube]);
+
   // Create YouTube player when needed
   useEffect(() => {
     if (!isYouTube || !ytId || !ytContainerRef.current) return;
@@ -148,6 +212,17 @@ const VideoLesson = ({ lesson, courseId, onEnded }: VideoLessonProps) => {
           videoId: ytId,
           playerVars: { enablejsapi: 1, rel: 0 },
           events: {
+            onReady: (e: any) => {
+              // Seek to saved position if present
+              try {
+                const pos = savedPosition.current || 0;
+                if (pos > 0 && typeof e.target.seekTo === 'function') {
+                  e.target.seekTo(pos, true);
+                }
+              } catch (e) {
+                // ignore
+              }
+            },
             onStateChange: (e: any) => {
               if (e.data === YT.PlayerState.ENDED) {
                 saveProgress(true);

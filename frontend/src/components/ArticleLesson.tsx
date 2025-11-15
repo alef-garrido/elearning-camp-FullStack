@@ -1,176 +1,93 @@
-import { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { Lesson } from '@/types/api';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, Printer } from 'lucide-react';
-import { useState } from 'react';
-import { ApiClient } from '@/lib/api';
+import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface ArticleLessonProps {
   lesson: Lesson;
-  courseId: string;
+  courseId?: string;
   onEnded?: () => void;
 }
 
-interface ArticleLessonProps {
-  lesson: Lesson;
-  courseId: string;
-}
-
-/**
- * Article lesson renderer with markdown support
- * Handles: rendering markdown content, copy code blocks, print support
- * Note: Uses basic HTML rendering; for full markdown, can upgrade to marked or markdown-it
- */
-const ArticleLesson = ({ lesson, courseId, onEnded }: ArticleLessonProps) => {
+const ArticleLesson: React.FC<ArticleLessonProps> = ({ lesson }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  // Simple markdown-like content rendering
-  // In production, use: npm install marked
-  const renderContent = (content: string) => {
-    // Split content by code blocks
-    const parts = content.split(/```([\s\S]*?)```/);
-    
-    return (
-      <div className="space-y-4">
-        {parts.map((part, idx) => {
-          if (idx % 2 === 0) {
-            // Regular text
-            return (
-              <div
-                key={idx}
-                className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{
-                  __html: part
-                    .split('\n# ')
-                    .map((line, i) =>
-                      i === 0
-                        ? line
-                            .split('\n## ')
-                            .map((l, j) =>
-                              j === 0
-                                ? l
-                                    .split('\n')
-                                    .map((p) => {
-                                      if (p.startsWith('**') && p.endsWith('**')) {
-                                        return `<strong>${p.slice(2, -2)}</strong>`;
-                                      }
-                                      if (p.startsWith('- ')) {
-                                        return `<li>${p.slice(2)}</li>`;
-                                      }
-                                      if (p) return `<p>${p}</p>`;
-                                      return '';
-                                    })
-                                    .join('')
-                                : `<h2>${l}</h2>`
-                            )
-                            .join('')
-                        : `<h1>${line}</h1>`
-                    )
-                    .join(''),
-                }}
-              />
-            );
-          } else {
-            // Code block
-            const code = part.trim();
-            return (
-              <div
-                key={idx}
-                className="bg-muted rounded-lg overflow-hidden border border-border"
-              >
-                <div className="flex items-center justify-between bg-muted-foreground/10 px-4 py-2 border-b border-border">
-                  <span className="text-xs font-mono text-muted-foreground">
-                    Code
-                  </span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(code);
-                      setCopiedCode(code);
-                      setTimeout(() => setCopiedCode(null), 2000);
-                    }}
-                    className="text-xs flex items-center gap-1 px-2 py-1 rounded hover:bg-muted-foreground/20 transition"
-                  >
-                    {copiedCode === code ? (
-                      <>
-                        <Check className="h-3 w-3" /> Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" /> Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-                <pre className="p-4 overflow-x-auto">
-                  <code className="text-xs font-mono text-foreground">
-                    {code}
-                  </code>
-                </pre>
-              </div>
-            );
-          }
-        })}
-      </div>
-    );
+  const content = lesson.url || '';
+
+  const renderMarkdown = (md: string) => {
+    const renderer = new marked.Renderer();
+    renderer.code = (code: string, infostring: string | undefined) => {
+      const lang = (infostring || '').split(' ')[0] || 'code';
+      const escaped = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return `
+        <div class="code-block border border-border rounded-md overflow-hidden bg-muted my-4">
+          <div class="code-block-toolbar flex items-center justify-between px-3 py-2 border-b border-border">
+            <span class="text-xs font-mono text-muted-foreground">${lang}</span>
+            <button class="copy-code-btn text-xs px-2 py-1 rounded hover:bg-muted-foreground/20">Copy</button>
+          </div>
+          <pre class="p-3 overflow-x-auto"><code class="language-${lang} font-mono text-sm">${escaped}</code></pre>
+        </div>
+      `;
+    };
+
+    const raw = marked.parse(md || '', { renderer });
+    return DOMPurify.sanitize(raw);
   };
 
-  if (!lesson.url) {
+  const sanitizedHtml = useMemo(() => renderMarkdown(content), [content]);
+
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    const buttons = Array.from(root.querySelectorAll('.copy-code-btn')) as HTMLButtonElement[];
+    const handlers: Array<() => void> = [];
+
+    buttons.forEach((btn) => {
+      const handler = () => {
+        const codeEl = btn.closest('.code-block')?.querySelector('pre > code');
+        if (!codeEl) return;
+        const text = codeEl.textContent || '';
+        navigator.clipboard.writeText(text).then(() => {
+          setCopiedCode(text);
+          toast.success('Code copied');
+          setTimeout(() => setCopiedCode(null), 2000);
+        }).catch(() => {
+          toast.error('Copy failed');
+        });
+      };
+      btn.addEventListener('click', handler);
+      handlers.push(() => btn.removeEventListener('click', handler));
+    });
+
+    return () => handlers.forEach((h) => h());
+  }, [sanitizedHtml]);
+
+  if (!content) {
     return (
       <div className="p-6 rounded-lg bg-red-50 border border-red-200">
         <p className="text-red-800 font-semibold">Article Not Available</p>
-        <p className="text-sm text-red-700 mt-2">
-          The article content for this lesson is missing. Please contact the
-          instructor.
-        </p>
+        <p className="text-sm text-red-700 mt-2">The article content for this lesson is missing.</p>
       </div>
     );
   }
 
   return (
     <div className="w-full space-y-4">
-      {/* Article Content */}
-      <div className="rounded-lg border border-border bg-card p-6">
-        {renderContent(lesson.url)}
-      </div>
+      <div ref={containerRef} className="rounded-lg border border-border bg-card p-6" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
 
-      {/* Action Buttons */}
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => window.print()}
-          className="gap-2"
-        >
+        <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
           <Printer className="h-4 w-4" />
           Print Article
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={async () => {
-            try {
-              await ApiClient.updateLessonProgress(courseId, lesson._id, {
-                lastPositionSeconds: lesson.durationSeconds || 0,
-                completed: true,
-              });
-              toast.success(`Marked "${lesson.title}" as complete`);
-              onEnded?.();
-            } catch (err) {
-              console.error('Failed to mark article complete', err);
-              toast.error('Failed to mark lesson complete');
-            }
-          }}
-          className="gap-2"
-        >
-          Mark Complete
         </Button>
       </div>
 
       {lesson.durationSeconds && (
-        <p className="text-xs text-muted-foreground">
-          Estimated reading time: {Math.ceil(lesson.durationSeconds / 60)} minutes
-        </p>
+        <p className="text-xs text-muted-foreground">Estimated reading time: {Math.ceil(lesson.durationSeconds / 60)} minutes</p>
       )}
     </div>
   );
