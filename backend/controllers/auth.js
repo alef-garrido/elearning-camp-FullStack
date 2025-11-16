@@ -64,9 +64,11 @@ exports.logout = asyncHandler(async (req, res, next) => {
 // @route   POST /api/v1/auth/me
 // @access  Private
 exports.getMe = asyncHandler(async (req, res, next) => {
+  // Enhance user with signed photo URL
+  const userWithPhotoUrl = await require('../utils/supabasePhotoUrl').enhanceUserWithPhotoUrl(req.user);
   res.status(200).json({
     success: true,
-    data: req.user
+    data: userWithPhotoUrl
   });
 });
 

@@ -59,7 +59,36 @@ async function enhanceCommunityWithPhotoUrl(community) {
   return communityObj;
 }
 
+/**
+ * Enhance a user object with a photoUrl field
+ * @param {Object} user - User object (or array of users)
+ * @returns {Promise<Object>} User object with photoUrl field added
+ */
+async function enhanceUserWithPhotoUrl(user) {
+  if (!user) {
+    return user;
+  }
+
+  // Handle array of users
+  if (Array.isArray(user)) {
+    return Promise.all(user.map(u => enhanceUserWithPhotoUrl(u)));
+  }
+
+  // Convert to plain object if it's a Mongoose document
+  const userObj = user.toObject ? user.toObject() : user;
+
+  // Generate signed URL if photo filename exists
+  if (userObj.photo) {
+    userObj.photoUrl = await getPhotoUrl(userObj.photo);
+  } else {
+    userObj.photoUrl = null;
+  }
+
+  return userObj;
+}
+
 module.exports = {
   getPhotoUrl,
-  enhanceCommunityWithPhotoUrl
+  enhanceCommunityWithPhotoUrl,
+  enhanceUserWithPhotoUrl
 };

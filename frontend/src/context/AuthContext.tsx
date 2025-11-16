@@ -4,6 +4,7 @@ import { User } from '@/types/api';
 
 interface AuthContextType {
   user: User | null;
+  setUser?: (user: User | null) => void;
   isLoading: boolean;
   isPublisher: boolean;
   isAdmin: boolean;
@@ -61,12 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     user,
+    setUser,
     isLoading,
     isPublisher,
     isAdmin,
     isAuthenticated,
     logout
-  }), [user, isLoading, isPublisher, isAdmin, isAuthenticated]);
+  }), [user, setUser, isLoading, isPublisher, isAdmin, isAuthenticated]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

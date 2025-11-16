@@ -36,6 +36,11 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
+    ,
+    photo: {
+        type: String,
+        default: ''
+    }
 });
 
 // Encrypt password using bcrypt

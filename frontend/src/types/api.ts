@@ -155,6 +155,8 @@ export interface User {
   email: string;
   role: 'user' | 'publisher' | 'admin';
   createdAt: string;
+  photo?: string;
+  photoUrl?: string; // Signed URL from Supabase Storage
 }
 
 // Auth Interfaces

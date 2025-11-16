@@ -21,7 +21,10 @@ exports.getUser = asyncHandler(async (req, res, next) => {
     );
   }
 
-  res.status(200).json({ success: true, data: user });
+  // Enhance user with signed photo URL
+  const userWithPhotoUrl = await require('../utils/supabasePhotoUrl').enhanceUserWithPhotoUrl(user);
+
+  res.status(200).json({ success: true, data: userWithPhotoUrl });
 });
 
 // @desc      Create user

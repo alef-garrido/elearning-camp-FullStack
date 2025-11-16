@@ -219,6 +219,23 @@ export class ApiClient {
     return res;
   }
 
+  // User Profile Photo Upload
+  static async uploadUserPhoto(photo: File): Promise<{ success: boolean; data: { photo: string; photoUrl: string } }> {
+    const formData = new FormData();
+    formData.append('file', photo);
+    return this.request('/users/photo', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  // Delete authenticated user's profile photo
+  static async deleteUserPhoto(): Promise<{ success: boolean; data: { photo: string | null; photoUrl: string | null } }> {
+    return this.request('/users/photo', {
+      method: 'DELETE'
+    });
+  }
+
   // Courses Methods
   static async getCourses(params?: PaginationParams): Promise<ApiResponse<Course[]>> {
     const query = new URLSearchParams();

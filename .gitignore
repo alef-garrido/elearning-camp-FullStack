@@ -520,3 +520,7 @@ FodyWeavers.xsd
 **/.next/
 **/out/
 .gemini/
+
+# Local planning and debugging notes - keep out of git history
+PHOTO_UPLOAD_FIX.md
+IMPLEMENTATION_CHECKLIST.md
