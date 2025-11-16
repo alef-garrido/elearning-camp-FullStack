@@ -68,10 +68,18 @@ export const CommunityTimeline = ({ communityId, communityOwnerId }: CommunityTi
 
     try {
       const res = await ApiClient.createPost(communityId, { content: tempPost.content });
+      console.debug('createPost response', res);
+      // Backend may return user as an ObjectId (string) until populated.
+      // Ensure the UI displays the current user info immediately after creation.
+      const realPost = res.data as any;
+      if (realPost && typeof realPost.user === 'string') {
+        realPost.user = user;
+      }
       // replace temp post with real one
-      setPosts(prev => prev.map(p => (p._id === tempId ? res.data : p)));
+      setPosts(prev => prev.map(p => (p._id === tempId ? realPost : p)));
       toast.success('Post created');
     } catch (err: any) {
+      console.error('Failed to create post', err);
       // remove temp post
       setPosts(prev => prev.filter(p => p._id !== tempId));
       setTotal(prev => (prev !== null ? prev - 1 : prev));

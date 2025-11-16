@@ -48,6 +48,9 @@ exports.createPost = asyncHandler(async (req, res, next) => {
     attachments: req.body.attachments || []
   });
 
+  // Populate user fields (name, photo) so the client receives display-ready data
+  await post.populate('user', 'name photo');
+
   res.status(201).json({ success: true, data: post });
 });
 
