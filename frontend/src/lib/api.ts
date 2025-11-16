@@ -327,6 +327,33 @@ export class ApiClient {
     });
   }
 
+  // Posts / Timeline Methods
+  static async getCommunityPosts(
+    communityId: string,
+    params?: PaginationParams
+  ): Promise<ApiResponse<Post[]>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/communities/${communityId}/posts?${query}`);
+  }
+
+  static async createPost(
+    communityId: string,
+    input: CreatePostInput
+  ): Promise<ApiResponse<Post>> {
+    return this.request(`/communities/${communityId}/posts`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async deletePost(communityId: string, postId: string): Promise<ApiResponse<void>> {
+    return this.request(`/communities/${communityId}/posts/${postId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Enrollment Methods
   static async getMyEnrollments(params?: PaginationParams): Promise<ApiResponse<any>> {
     const query = new URLSearchParams();
