@@ -12,10 +12,11 @@ import { User, Community, Course } from "@/types/api";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
+import { UserPhotoUploader } from "@/components/UserPhotoUploader";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isLoading: isAuthLoading, setUser } = useAuth() as any;
   const canManageUsers = useFeatureFlag('user-management');
   const canCreateCommunity = useFeatureFlag('community-creation');
   const canCreateCourse = useFeatureFlag('course-creation');
@@ -26,6 +27,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -129,6 +131,44 @@ const Dashboard = () => {
                     <div>
                       <p className="text-sm text-muted-foreground">Email</p>
                       <p className="text-lg font-medium">{user.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Profile Photo</p>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                          {user.photoUrl ? (
+                            <img
+                              src={user.photoUrl}
+                              alt="Profile"
+                              className="w-16 h-16 rounded-full object-cover border"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border">
+                              <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                          )}
+
+                          <Dialog open={showPhotoDialog} onOpenChange={setShowPhotoDialog}>
+                            <DialogTrigger asChild>
+                              <Button size="sm">Change Photo</Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                              <DialogHeader>
+                                <DialogTitle>Update profile photo</DialogTitle>
+                              </DialogHeader>
+                              <UserPhotoUploader
+                                currentPhotoUrl={user.photoUrl}
+                                onUploadSuccess={(photo, photoUrl) => {
+                                  setUser && setUser({ ...user, photo, photoUrl });
+                                  toast.success("Profile photo updated!");
+                                  setShowPhotoDialog(false);
+                                }}
+                                onClose={() => setShowPhotoDialog(false)}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </div>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Role</p>

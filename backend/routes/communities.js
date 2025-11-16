@@ -13,6 +13,7 @@ const {
 } = require('../controllers/communities');
 const advancedResults = require('../middleware/advancedResults');
 const Community = require('../models/Community');
+const { uploadSingle } = require('../middleware/upload');
 // Include other resource routers
 const courseRouter = require('./courses');
 const reviewRouter = require('./reviews');
@@ -23,9 +24,10 @@ const router = express.Router();
 const { protect, authorize}  = require('../middleware/auth');
 
 // Photo upload route (should come before nested routes)
+// Use multer middleware to handle file upload to memory
 router
     .route('/:id/photo')
-    .put(protect, authorize('publisher', 'admin'), communityPhotoUpload);
+    .put(protect, authorize('publisher', 'admin'), uploadSingle('file'), communityPhotoUpload);
 
 // Enrollment routes
 router

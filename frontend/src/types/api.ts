@@ -33,6 +33,7 @@ export interface Community {
   hasLiveEvents?: boolean;
   isPaid?: boolean;
   photo?: string;
+  photoUrl?: string; // Signed URL from Supabase Storage
   averageRating?: number;
   averageCost?: number;
   user: string;
@@ -154,6 +155,8 @@ export interface User {
   email: string;
   role: 'user' | 'publisher' | 'admin';
   createdAt: string;
+  photo?: string;
+  photoUrl?: string; // Signed URL from Supabase Storage
 }
 
 // Auth Interfaces

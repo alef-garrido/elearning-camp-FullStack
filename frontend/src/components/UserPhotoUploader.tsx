@@ -4,21 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ApiClient } from "@/lib/api";
-import { Community } from "@/types/api";
 
-interface PhotoUploaderProps {
-  communityId: string;
+interface UserPhotoUploaderProps {
   currentPhotoUrl?: string;
-  onUploadSuccess: (community: Community) => void;
+  onUploadSuccess: (photo: string, photoUrl: string) => void;
   onClose?: () => void;
 }
 
-export const PhotoUploader = ({ 
-  communityId, 
-  currentPhotoUrl, 
-  onUploadSuccess,
-  onClose 
-}: PhotoUploaderProps) => {
+export const UserPhotoUploader = ({ currentPhotoUrl, onUploadSuccess, onClose }: UserPhotoUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentPhotoUrl || null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -26,8 +19,7 @@ export const PhotoUploader = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Backend `MAX_FILE_UPLOAD` is set to 1000000 by default (1MB). Keep client-side limit aligned.
-  const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
   const validateFile = (file: File): string | null => {
@@ -46,7 +38,6 @@ export const PhotoUploader = ({
       toast.error(error);
       return;
     }
-
     setSelectedFile(file);
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -58,7 +49,6 @@ export const PhotoUploader = ({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-
     const file = e.dataTransfer.files[0];
     if (file) {
       handleFileSelect(file);
@@ -87,23 +77,20 @@ export const PhotoUploader = ({
       toast.error('Please select a file first');
       return;
     }
-
     setIsUploading(true);
     setUploadProgress(0);
-
     try {
       setUploadProgress(20);
-
-      // Upload file to backend (server will store it in Supabase)
-      const res = await ApiClient.uploadCommunityPhoto(communityId, selectedFile);
-
+      const res = await ApiClient.uploadUserPhoto(selectedFile);
       setUploadProgress(100);
-      const updatedCommunity = res.data;
-      toast.success('Photo uploaded successfully!');
-      // Use photoUrl from response for preview (this is the signed URL from Supabase)
-      setPreview(updatedCommunity.photoUrl || null);
-      onUploadSuccess(updatedCommunity);
-      onClose?.();
+      if (res.success) {
+        setPreview(res.data.photoUrl || null);
+        onUploadSuccess(res.data.photo, res.data.photoUrl);
+          // If parent provided an onClose (dialog), close it after success
+          if (typeof onClose === 'function') onClose();
+      } else {
+        toast.error('Failed to upload photo');
+      }
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error(error.message || 'Failed to upload photo');
@@ -113,22 +100,39 @@ export const PhotoUploader = ({
     }
   };
 
-  const handleRemove = () => {
-    setSelectedFile(null);
-    setPreview(currentPhotoUrl || null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  const handleDelete = async () => {
+    if (!preview) return;
+    if (!window.confirm('Remove your profile photo?')) return;
+    try {
+      setIsUploading(true);
+      const res = await ApiClient.deleteUserPhoto();
+      if (res.success) {
+        setPreview(null);
+        onUploadSuccess('', null as any);
+          if (typeof onClose === 'function') onClose();
+        toast.success('Profile photo removed');
+      } else {
+        toast.error('Failed to remove profile photo');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to remove profile photo');
+    } finally {
+      setIsUploading(false);
     }
   };
 
+  const handleRemove = () => {
+    setSelectedFile(null);
+    setPreview(currentPhotoUrl || null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
-    <Card className="p-6">
-      <div className="space-y-4">
+    <Card className="p-2">
+      <div className="space-y-2">
         <div
-          className={`relative border-2 border-dashed rounded-lg p-8 transition-colors ${
-            isDragging 
-              ? 'border-primary bg-primary/5' 
-              : 'border-border hover:border-primary/50'
+          className={`relative border-2 border-dashed rounded-lg p-4 transition-colors ${
+            isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
           }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -136,81 +140,50 @@ export const PhotoUploader = ({
         >
           {preview ? (
             <div className="relative">
-              <img 
-                src={preview} 
-                alt="Preview" 
-                className="w-full h-64 object-cover rounded-lg"
-              />
+              <img src={preview} alt="Preview" className="w-16 h-16 object-cover rounded-full border" />
               {!isUploading && (
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={handleRemove}
-                >
+                <Button variant="destructive" size="icon" className="absolute top-2 right-2" onClick={handleRemove}>
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
           ) : (
             <div className="text-center">
-              <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-sm text-muted-foreground mb-2">
-                Drag and drop your image here, or click to browse
-              </p>
-              <p className="text-xs text-muted-foreground">
-                JPEG, PNG, or WebP • Max 5MB
-              </p>
+              <ImageIcon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-xs text-muted-foreground mb-1">Drag and drop your image here, or click to browse</p>
+              <p className="text-xs text-muted-foreground">JPEG, PNG, or WebP • Max 5MB</p>
             </div>
           )}
-          
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={ALLOWED_TYPES.join(',')}
-            onChange={handleFileInput}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            disabled={isUploading}
-          />
+
+          <input ref={fileInputRef} type="file" accept={ALLOWED_TYPES.join(',')} onChange={handleFileInput} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={isUploading} />
         </div>
 
         {isUploading && (
-          <div className="space-y-2">
-            <div className="w-full bg-secondary rounded-full h-2">
-              <div 
-                className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
+          <div className="space-y-1">
+            <div className="w-full bg-secondary rounded-full h-1">
+              <div className="bg-primary h-1 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
             </div>
-            <p className="text-xs text-center text-muted-foreground">
-              Uploading... {uploadProgress}%
-            </p>
+            <p className="text-xs text-center text-muted-foreground">Uploading... {uploadProgress}%</p>
           </div>
         )}
 
         <div className="flex gap-2">
-          <Button
-            onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
-            className="flex-1"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Photo
-              </>
-            )}
-          </Button>
-          {onClose && (
-            <Button variant="outline" onClick={onClose} disabled={isUploading}>
-              Cancel
-            </Button>
+          <Button onClick={handleUpload} disabled={!selectedFile || isUploading} className="flex-1">
+          {isUploading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Photo
+            </>
           )}
+          </Button>
+          <Button variant="outline" onClick={handleDelete} disabled={isUploading || !preview}>
+            Remove
+          </Button>
         </div>
       </div>
     </Card>
