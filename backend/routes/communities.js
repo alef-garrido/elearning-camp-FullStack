@@ -17,6 +17,7 @@ const { uploadSingle } = require('../middleware/upload');
 // Include other resource routers
 const courseRouter = require('./courses');
 const reviewRouter = require('./reviews');
+const postsRouter = require('./posts');
 
 
 const router = express.Router();
@@ -47,6 +48,7 @@ router
 // Re-route into other resource routers
 router.use('/:communityId/courses', courseRouter);
 router.use('/:communityId/reviews', reviewRouter);
+router.use('/:communityId/posts', postsRouter);
 
 router
     .route('/radius/:zipcode/:distance')
