@@ -36,9 +36,9 @@ export const CommunityCard = ({ community }: CommunityCardProps) => {
     <Link to={`/communities/${community._id}`}>
       <Card className="overflow-hidden hover:shadow-medium transition-all duration-300 group cursor-pointer bg-gradient-card border-border/50">
         <div className="aspect-video bg-gradient-primary relative overflow-hidden">
-          {community.photo ? (
+          {community.photoUrl ? (
             <img 
-              src={community.photo} 
+              src={community.photoUrl} 
               alt={community.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />

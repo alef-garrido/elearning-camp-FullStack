@@ -16,5 +16,10 @@
     "node": ">=18.0.0",
     "pnpm": ">=10.0.0"
   },
-  "packageManager": "pnpm@10.18.3"
+  "packageManager": "pnpm@10.18.3",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.81.1",
+    "multer": "^2.0.2",
+    "uuid": "^13.0.0"
+  }
 }

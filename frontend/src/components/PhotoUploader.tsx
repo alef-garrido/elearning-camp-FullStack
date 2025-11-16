@@ -8,19 +8,19 @@ import { Community } from "@/types/api";
 
 interface PhotoUploaderProps {
   communityId: string;
-  currentPhoto?: string;
+  currentPhotoUrl?: string;
   onUploadSuccess: (community: Community) => void;
   onClose?: () => void;
 }
 
 export const PhotoUploader = ({ 
   communityId, 
-  currentPhoto, 
+  currentPhotoUrl, 
   onUploadSuccess,
   onClose 
 }: PhotoUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [preview, setPreview] = useState<string | null>(currentPhoto || null);
+  const [preview, setPreview] = useState<string | null>(currentPhotoUrl || null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -94,15 +94,14 @@ export const PhotoUploader = ({
     try {
       setUploadProgress(20);
 
-      // Upload file to backend (server will store it under /public/uploads)
+      // Upload file to backend (server will store it in Supabase)
       const res = await ApiClient.uploadCommunityPhoto(communityId, selectedFile);
 
       setUploadProgress(100);
       const updatedCommunity = res.data;
       toast.success('Photo uploaded successfully!');
-      // Construct the full photo URL using the backend URL
-      const photoUrl = `${import.meta.env.VITE_BACKEND_URL}/uploads/${updatedCommunity.photo}`;
-      setPreview(photoUrl);
+      // Use photoUrl from response for preview (this is the signed URL from Supabase)
+      setPreview(updatedCommunity.photoUrl || null);
       onUploadSuccess(updatedCommunity);
       onClose?.();
     } catch (error: any) {
@@ -116,7 +115,7 @@ export const PhotoUploader = ({
 
   const handleRemove = () => {
     setSelectedFile(null);
-    setPreview(currentPhoto || null);
+    setPreview(currentPhotoUrl || null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

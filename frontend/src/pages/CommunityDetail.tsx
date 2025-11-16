@@ -211,9 +211,9 @@ const CommunityDetail = () => {
 
         {/* Hero Section */}
         <div className="aspect-[21/9] sm:aspect-[21/6] bg-gradient-primary relative overflow-hidden rounded-xl mb-6 sm:mb-8 group">
-          {community.photo ? (
+          {community.photoUrl ? (
             <img 
-              src={community.photo}
+              src={community.photoUrl}
               alt={community.name}
               className="w-full h-full object-cover"
             />
@@ -243,7 +243,7 @@ const CommunityDetail = () => {
             </DialogHeader>
             <PhotoUploader
               communityId={id!}
-              currentPhoto={community.photo}
+              currentPhotoUrl={community.photoUrl}
               onUploadSuccess={(updatedCommunity) => {
                 setCommunity(updatedCommunity);
                 setShowPhotoUploader(false);

@@ -191,8 +191,7 @@ export class ApiClient {
   }
 
   // Upload a community photo and return a public URL to access it.
-  // The backend returns the stored filename; we construct a public URL based
-  // on the API base URL and the server's `/uploads` static path.
+  // The backend returns a signed URL from Supabase Storage.
   static async uploadCommunityPhoto(id: string, photo: File): Promise<ApiResponse<Community>> {
     const formData = new FormData();
     formData.append('file', photo);
@@ -202,6 +201,21 @@ export class ApiClient {
       body: formData,
     });
 
+    return res;
+  }
+
+  // Generic file upload to /api/v1/uploads. Returns the backend response which
+  // includes the file URL and metadata (filename, mimeType, size).
+  static async uploadFile(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await this.request(`/uploads`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    // Backend returns { success: true, data: { url, filename, size, mimeType } }
     return res;
   }
 
