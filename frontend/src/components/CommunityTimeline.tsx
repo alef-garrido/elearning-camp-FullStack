@@ -17,6 +17,7 @@ export const CommunityTimeline = ({ communityId, communityOwnerId }: CommunityTi
   const { user } = useAuth() as { user?: User | null };
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [newContent, setNewContent] = useState('');
 
@@ -26,6 +27,10 @@ export const CommunityTimeline = ({ communityId, communityOwnerId }: CommunityTi
       const res = await ApiClient.getCommunityPosts(communityId, { page: p, limit: 10 });
       if (p === 1) setPosts(res.data);
       else setPosts(prev => [...prev, ...res.data]);
+      // keep total for pagination
+      if (res.pagination && typeof res.pagination.total === 'number') {
+        setTotal(res.pagination.total);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to load posts');
     } finally {
@@ -46,12 +51,30 @@ export const CommunityTimeline = ({ communityId, communityOwnerId }: CommunityTi
       toast.error('Please write something');
       return;
     }
+    // optimistic UI: add temporary post
+    const tempId = `tmp-${Date.now()}`;
+    const tempPost: Post = {
+      _id: tempId,
+      community: communityId,
+      user: user as any,
+      content: newContent.trim(),
+      attachments: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    setPosts(prev => [tempPost, ...prev]);
+    setNewContent('');
+    setTotal(prev => (prev !== null ? prev + 1 : prev));
+
     try {
-      const res = await ApiClient.createPost(communityId, { content: newContent.trim() });
-      setPosts(prev => [res.data, ...prev]);
-      setNewContent('');
+      const res = await ApiClient.createPost(communityId, { content: tempPost.content });
+      // replace temp post with real one
+      setPosts(prev => prev.map(p => (p._id === tempId ? res.data : p)));
       toast.success('Post created');
     } catch (err: any) {
+      // remove temp post
+      setPosts(prev => prev.filter(p => p._id !== tempId));
+      setTotal(prev => (prev !== null ? prev - 1 : prev));
       toast.error(err.message || 'Failed to create post');
     }
   };
@@ -59,11 +82,17 @@ export const CommunityTimeline = ({ communityId, communityOwnerId }: CommunityTi
   const handleDelete = async (postId: string) => {
     if (!user) return;
     if (!confirm('Delete this post?')) return;
+    // optimistic remove
+    const previous = posts;
+    setPosts(prev => prev.filter(p => p._id !== postId));
+    setTotal(prev => (prev !== null ? prev - 1 : prev));
     try {
       await ApiClient.deletePost(communityId, postId);
-      setPosts(prev => prev.filter(p => p._id !== postId));
       toast.success('Post deleted');
     } catch (err: any) {
+      // revert
+      setPosts(previous);
+      setTotal(prev => (prev !== null ? prev + 1 : prev));
       toast.error(err.message || 'Failed to delete post');
     }
   };
@@ -128,6 +157,18 @@ export const CommunityTimeline = ({ communityId, communityOwnerId }: CommunityTi
               </div>
             );
           })}
+          {/* Pagination / Load more */}
+          {total !== null && posts.length < total && (
+            <div className="flex justify-center mt-4">
+              <Button onClick={async () => {
+                const next = page + 1;
+                setPage(next);
+                await loadPosts(next);
+              }} disabled={loading}>
+                {loading ? 'Loading...' : 'Load more'}
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

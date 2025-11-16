@@ -14,6 +14,7 @@ import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { CourseCard } from "@/components/CourseCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
+import CommunityTimeline from "@/components/CommunityTimeline";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
@@ -293,6 +294,11 @@ const CommunityDetail = () => {
                   </div>
                 )}
               </TabsContent>
+
+              {/* Timeline Tab (inline under overview) */}
+              <div className="space-y-6 sm:space-y-8">
+                <CommunityTimeline communityId={community._id} communityOwnerId={community.user} />
+              </div>
 
               {/* Courses Tab */}
               <TabsContent value="courses" className="space-y-6">
