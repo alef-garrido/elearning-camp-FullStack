@@ -124,26 +124,18 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
                   <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Full Name</p>
-                      <p className="text-lg font-medium">{user.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="text-lg font-medium">{user.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Profile Photo</p>
+                                      <div>
+                      <p className="mb-4 text-sm text-muted-foreground">Profile Photo</p>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
                           {user.photoUrl ? (
                             <img
                               src={user.photoUrl}
                               alt="Profile"
-                              className="w-16 h-16 rounded-full object-cover border"
+                              className="w-36 h-36 rounded-full object-cover border"
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border">
+                            <div className="w-36 h-36 rounded-full bg-muted flex items-center justify-center border">
                               <ImageIcon className="w-8 h-8 text-muted-foreground" />
                             </div>
                           )}
@@ -170,6 +162,15 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Full Name</p>
+                      <p className="text-lg font-medium">{user.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="text-lg font-medium">{user.email}</p>
+                    </div>
+
                     <div>
                       <p className="text-sm text-muted-foreground">Role</p>
                       <p className="text-lg font-medium capitalize">{user.role}</p>
