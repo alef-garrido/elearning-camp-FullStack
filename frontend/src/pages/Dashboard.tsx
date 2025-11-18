@@ -30,9 +30,35 @@ const Dashboard = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showPhotoDialog, setShowPhotoDialog] = useState(false);
 
+  const fetchCommunities = async () => {
+    if (!user) return;
+    try {
+      const response = canManageUsers
+        ? await ApiClient.getCommunities()
+        : await ApiClient.getCommunities({ user: user._id });
+      setMyCommunities(response.data);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load communities");
+    }
+  };
+
+  const fetchCourses = async () => {
+    if (!user) return;
+    try {
+      const response = await ApiClient.getCourses();
+      const courses = canManageUsers
+        ? response.data
+        : response.data.filter(course => course.user === user._id);
+      setMyCourses(courses);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load courses");
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
+      setIsLoading(true);
 
       if (canManageUsers) {
         try {
@@ -43,25 +69,14 @@ const Dashboard = () => {
         }
       }
 
-      if (canCreateCommunity) {
-        try {
-          const communitiesResponse = await ApiClient.getCommunities({ user: user._id });
-          setMyCommunities(communitiesResponse.data);
-        } catch (error: any) {
-          toast.error(error.message || "Failed to load communities");
-        }
+      if (canCreateCommunity || canManageUsers) {
+        await fetchCommunities();
       }
 
-      if (canCreateCourse) {
-        try {
-          const coursesResponse = await ApiClient.getCourses(); // This will get all courses, we need to filter by user
-          setMyCourses(coursesResponse.data.filter(course => course.user === user._id));
-        } catch (error: any) {
-          toast.error(error.message || "Failed to load courses");
-        }
+      if (canCreateCourse || canManageUsers) {
+        await fetchCourses();
       }
 
-      // Load current user's enrollments to mark courses as enrolled in dashboard lists
       try {
         const enrollRes = await ApiClient.getMyEnrollments({ limit: 200 });
         const items = enrollRes.data || [];
@@ -110,6 +125,30 @@ const Dashboard = () => {
       toast.success('User deleted successfully');
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete user');
+    }
+  };
+
+  const handleCommunityDelete = async (communityId: string) => {
+    if (!window.confirm('Are you sure you want to delete this community?')) return;
+    
+    try {
+      await ApiClient.deleteCommunity(communityId);
+      toast.success('Community deleted successfully');
+      await fetchCommunities(); // Refetch communities
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete community');
+    }
+  };
+
+  const handleCourseDelete = async (courseId: string) => {
+    if (!window.confirm('Are you sure you want to delete this course?')) return;
+    
+    try {
+      await ApiClient.deleteCourse(courseId);
+      toast.success('Course deleted successfully');
+      await fetchCourses(); // Refetch courses
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete course');
     }
   };
 
@@ -201,13 +240,13 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Publisher: My Communities Section */}
-              {canCreateCommunity && (
+              {/* Publisher/Admin: Communities Section */}
+              {(canCreateCommunity || canManageUsers) && (
                 <Card className="shadow-soft border-border/50">
                   <CardHeader className="p-4 sm:p-6 flex flex-row items-center justify-between">
                     <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
                       <BookOpen className="h-5 w-5" />
-                      My Communities
+                      {canManageUsers ? 'Manage Communities' : 'My Communities'}
                     </CardTitle>
                     <Link to="/communities/create">
                       <Button variant="outline" size="sm">
@@ -224,24 +263,40 @@ const Dashboard = () => {
                             <Link to={`/communities/${community._id}`} className="font-medium hover:underline">
                               {community.name}
                             </Link>
-                            <span className="text-sm text-muted-foreground">{community.courses?.length || 0} Courses</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">{community.courses?.length || 0} Courses</span>
+                              {canManageUsers && (
+                                <>
+                                  <Link to={`/communities/${community._id}/edit`}>
+                                    <Button variant="outline" size="icon">
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                  <Button variant="outline" size="icon" onClick={() => handleCommunityDelete(community._id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <p className="text-muted-foreground">You have not created any communities yet.</p>
+                      <p className="text-muted-foreground">
+                        {canManageUsers ? 'No communities found.' : 'You have not created any communities yet.'}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
               )}
 
-              {/* Publisher: My Courses Section */}
-              {canCreateCourse && (
+              {/* Publisher/Admin: Courses Section */}
+              {(canCreateCourse || canManageUsers) && (
                 <Card className="shadow-soft border-border/50">
                   <CardHeader className="p-4 sm:p-6 flex flex-row items-center justify-between">
                     <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
                       <Award className="h-5 w-5" />
-                      My Courses
+                      {canManageUsers ? 'Manage Courses' : 'My Courses'}
                     </CardTitle>
                     <Link to="/courses/create">
                       <Button variant="outline" size="sm">
@@ -254,26 +309,42 @@ const Dashboard = () => {
                     {myCourses.length > 0 ? (
                       <ul className="divide-y divide-border">
                         {myCourses.map(course => (
-                              <li key={course._id} className="py-3 flex flex-col">
-                                <div className="flex items-center justify-between">
-                                  <Link to={`/courses/${course._id}`} className="font-medium hover:underline">
-                                    {course.title}
-                                  </Link>
-                                  <span className="text-sm text-muted-foreground">{course.minimumSkill}</span>
-                                </div>
-                                {enrolledCourseIds.has(course._id) && (
-                                  <div className="mt-2">
-                                    <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-sm font-semibold">
-                                      <Check className="h-4 w-4 text-emerald-600" />
-                                      <span>Enrolled</span>
-                                    </div>
-                                  </div>
+                          <li key={course._id} className="py-3 flex flex-col">
+                            <div className="flex items-center justify-between">
+                              <Link to={`/courses/${course._id}`} className="font-medium hover:underline">
+                                {course.title}
+                              </Link>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">{course.minimumSkill}</span>
+                                {canManageUsers && (
+                                  <>
+                                    <Link to={`/courses/${course._id}/edit`}>
+                                      <Button variant="outline" size="icon">
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </Link>
+                                    <Button variant="outline" size="icon" onClick={() => handleCourseDelete(course._id)}>
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </>
                                 )}
-                              </li>
+                              </div>
+                            </div>
+                            {enrolledCourseIds.has(course._id) && (
+                              <div className="mt-2">
+                                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-sm font-semibold">
+                                  <Check className="h-4 w-4 text-emerald-600" />
+                                  <span>Enrolled</span>
+                                </div>
+                              </div>
+                            )}
+                          </li>
                         ))}
                       </ul>
                     ) : (
-                      <p className="text-muted-foreground">You have not created any courses yet.</p>
+                      <p className="text-muted-foreground">
+                        {canManageUsers ? 'No courses found.' : 'You have not created any courses yet.'}
+                      </p>
                     )}
                   </CardContent>
                 </Card>

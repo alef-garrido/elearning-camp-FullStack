@@ -46,33 +46,17 @@ const NavbarComponent = () => {
               All Courses
             </Link>
             <Link to="/dashboard" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
-              My Dashboard
+              Dashboard
             </Link>
             <Link to="/my-enrollments" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
               My Enrollments
             </Link>
-
-            {canManageUsers && (
-              <Link to="/admin/dashboard" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
-                Admin Dashboard
-              </Link>
-            )}
 
             {(canCreateCommunity || canCreateCourse) && (
               <>
                 <Link to="/my-communities" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
                   My Communities
                 </Link>
-                {canCreateCommunity && (
-                  <Link to="/communities/create" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
-                    Create Community
-                  </Link>
-                )}
-                {canCreateCourse && (
-                  <Link to="/courses/create" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
-                    Create Course
-                  </Link>
-                )}
               </>
             )}
           </nav>
@@ -145,8 +129,6 @@ const NavbarComponent = () => {
                   {(canCreateCommunity || canCreateCourse) && (
                     <>
                       <Link to="/my-communities" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>My Communities</Link>
-                      {canCreateCommunity && <Link to="/communities/create" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Create Community</Link>}
-                      {canCreateCourse && <Link to="/courses/create" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Create Course</Link>}
                     </>
                   )}
 
@@ -196,30 +178,12 @@ const NavbarComponent = () => {
                   <Users className="mr-2 h-4 w-4" />
                   My Enrollments
                 </DropdownMenuItem>
-                {canManageUsers && (
-                  <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
-                    <User className="mr-2 h-4 w-4" />
-                    Admin Dashboard
-                  </DropdownMenuItem>
-                )}
                 {(canCreateCommunity || canCreateCourse) && (
                   <>
                     <DropdownMenuItem onClick={() => navigate('/my-communities')}>
                       <BookOpen className="mr-2 h-4 w-4" />
                       My Communities
                     </DropdownMenuItem>
-                    {canCreateCommunity && (
-                      <DropdownMenuItem onClick={() => navigate('/communities/create')}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create Community
-                      </DropdownMenuItem>
-                    )}
-                    {canCreateCourse && (
-                      <DropdownMenuItem onClick={() => navigate('/courses/create')}>
-                        <GraduationCap className="mr-2 h-4 w-4" />
-                        Create Course
-                      </DropdownMenuItem>
-                    )}
                   </>
                 )}
                 <DropdownMenuItem onClick={handleLogout}>
@@ -281,8 +245,6 @@ const NavbarComponent = () => {
                   {(canCreateCommunity || canCreateCourse) && (
                     <>
                       <Link to="/my-communities" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>My Communities</Link>
-                      {canCreateCommunity && <Link to="/communities/create" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Create Community</Link>}
-                      {canCreateCourse && <Link to="/courses/create" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Create Course</Link>}
                     </>
                   )}
                   <Button variant="outline" className="justify-start" onClick={() => { handleLogout(); setOpen(false); }}>

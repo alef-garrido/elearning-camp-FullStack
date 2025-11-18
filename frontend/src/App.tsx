@@ -45,9 +45,6 @@ const App = () => (
                 <Route path="/courses/:courseId/player" element={<CoursePlayer />} />
                 <Route path="/dashboard" element={<Dashboard />} />
 
-                {/* Admin routes */}
-                <Route path="/admin/dashboard" element={<NotFound />} />
-
                 {/* Publisher and Admin routes */}
                 <Route path="/my-communities" element={<MyCommunities />} />
                 <Route path="/my-enrollments" element={<MyEnrollments />} />
