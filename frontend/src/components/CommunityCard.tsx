@@ -1,7 +1,8 @@
-import { Star, MapPin, Globe, Edit3, Trash2 } from "lucide-react";
+import { Star, MapPin, Globe, Edit3, Trash2, Check } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Community } from "@/types/api";
+import { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { ApiClient } from "@/lib/api";
@@ -16,6 +17,29 @@ interface CommunityCardProps {
 export const CommunityCard = ({ community }: CommunityCardProps) => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const [isMember, setIsMember] = useState<boolean>(false);
+  
+  // If user is logged in, check membership status for this community.
+  useEffect(() => {
+    let mounted = true;
+    if (!user) {
+      setIsMember(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await ApiClient.getEnrollmentStatus(community._id);
+        if (!mounted) return;
+        setIsMember(!!res?.data?.enrolled);
+      } catch (err) {
+        // ignore and leave as not member
+        if (mounted) setIsMember(false);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [user, community._id]);
   const isOwner = user && (isAdmin || user._id === community.user);
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -68,6 +92,14 @@ export const CommunityCard = ({ community }: CommunityCardProps) => {
             <h3 className="text-lg sm:text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2 flex-1">
               {community.name}
             </h3>
+            {isMember && (
+              <div className="flex items-center gap-2 mr-2 flex-shrink-0">
+                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+                  <Check className="h-3 w-3 text-emerald-600" />
+                  <span>Member</span>
+                </div>
+              </div>
+            )}
             {community.averageRating && (
               <Badge variant="secondary" className="flex items-center gap-1 flex-shrink-0">
                 <Star className="h-3 w-3 fill-primary text-primary" />
