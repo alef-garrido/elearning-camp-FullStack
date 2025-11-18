@@ -44,12 +44,13 @@ const CommunityDetail = () => {
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [enrollmentUpdated, setEnrollmentUpdated] = useState(0);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('timeline');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showCourseEnroll, setShowCourseEnroll] = useState(false);
   const [courseEnrollments, setCourseEnrollments] = useState<Record<string, boolean>>({});
   const coursesPerPage = 6;
   const reviewsPerPage = 5;
+  const defaultTab = 'timeline'; // Set timeline as default
 
   useEffect(() => {
     loadCommunityData();
@@ -258,11 +259,17 @@ const CommunityDetail = () => {
           {/* Main Content with Tabs */}
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsTrigger value="timeline">Timeline</TabsTrigger>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="courses">Courses</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
               </TabsList>
+
+              {/* Timeline Tab */}
+              <TabsContent value="timeline" className="space-y-6 sm:space-y-8">
+                <CommunityTimeline communityId={community._id} communityOwnerId={community.user} />
+              </TabsContent>
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6 sm:space-y-8">
@@ -294,11 +301,6 @@ const CommunityDetail = () => {
                   </div>
                 )}
               </TabsContent>
-
-              {/* Timeline Tab (inline under overview) */}
-              <div className="space-y-6 sm:space-y-8">
-                <CommunityTimeline communityId={community._id} communityOwnerId={community.user} />
-              </div>
 
               {/* Courses Tab */}
               <TabsContent value="courses" className="space-y-6">
