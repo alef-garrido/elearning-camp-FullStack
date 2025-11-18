@@ -18,11 +18,11 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/Layout";
 import MyEnrollments from "./pages/MyEnrollments";
+import MyCommunities from "./pages/MyCommunities";
 
 const queryClient = new QueryClient();
 
-import MyCommunities from "./pages/MyCommunities";
-import MyEnrollments from "./pages/MyEnrollments";
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
