@@ -206,3 +206,19 @@ export interface CommunityQueryParams extends PaginationParams {
   averageRating?: number;
   user?: string;
 }
+
+// Post / Timeline Interfaces
+export interface Post {
+  _id: string;
+  community: string | Community;
+  user: string | User;
+  content: string;
+  attachments?: Attachment[] | string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreatePostInput {
+  content: string;
+  attachments?: string[];
+}

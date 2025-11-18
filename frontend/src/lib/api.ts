@@ -4,11 +4,13 @@ import {
   Course,
   Review,
   User,
+  Post,
   AuthResponse,
   LoginInput,
   RegisterInput,
   CreateCommunityInput,
   CreateCourseInput,
+  CreatePostInput,
   CreateReviewInput,
   UpdateUserDetailsInput,
   UpdatePasswordInput,
@@ -323,6 +325,33 @@ export class ApiClient {
 
   static async deleteReview(reviewId: string): Promise<ApiResponse<void>> {
     return this.request(`/reviews/${reviewId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Posts / Timeline Methods
+  static async getCommunityPosts(
+    communityId: string,
+    params?: PaginationParams
+  ): Promise<ApiResponse<Post[]>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/communities/${communityId}/posts?${query}`);
+  }
+
+  static async createPost(
+    communityId: string,
+    input: CreatePostInput
+  ): Promise<ApiResponse<Post>> {
+    return this.request(`/communities/${communityId}/posts`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async deletePost(communityId: string, postId: string): Promise<ApiResponse<void>> {
+    return this.request(`/communities/${communityId}/posts/${postId}`, {
       method: 'DELETE',
     });
   }
