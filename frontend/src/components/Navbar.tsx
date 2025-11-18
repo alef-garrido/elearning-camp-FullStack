@@ -15,7 +15,7 @@ import { useState, memo, useCallback } from "react";
 const NavbarComponent = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const canCreateCommunity = useFeatureFlag('community-creation');
   const canCreateCourse = useFeatureFlag('course-creation');
   const canManageUsers = useFeatureFlag('user-management');
@@ -77,7 +77,27 @@ const NavbarComponent = () => {
             )}
           </nav>
 
-          <div className="mt-4">
+          {/* Profile preview placed above the logout button */}
+          <div className="mt-6 mb-4 flex items-center gap-3">
+            {user?.photoUrl ? (
+              <img
+                src={user.photoUrl}
+                alt={user?.name || user?.email}
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-foreground">
+                {user?.name ? user.name.split(' ').map(n => n[0]).slice(0,2).join('') : (user?.email || '').charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            <div className="flex flex-col">
+              <span className="font-semibold text-sm">{user?.name || user?.email}</span>
+              <span className="text-xs text-muted-foreground break-all">{user?.email}</span>
+            </div>
+          </div>
+
+          <div className="mt-2">
             <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout
@@ -103,6 +123,21 @@ const NavbarComponent = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-64">
                 <nav className="flex flex-col gap-4 mt-8">
+                  {/* Profile preview for small screens */}
+                  <div className="mb-2 flex items-center gap-3">
+                    {user?.photoUrl ? (
+                      <img src={user.photoUrl} alt={user?.name || user?.email} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-foreground">
+                        {user?.name ? user.name.split(' ').map(n => n[0]).slice(0,2).join('') : (user?.email || '').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-sm">{user?.name || user?.email}</span>
+                      <span className="text-xs text-muted-foreground break-all">{user?.email}</span>
+                    </div>
+                  </div>
                   <Link to="/communities" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Communities</Link>
                   <Link to="/courses" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Courses</Link>
                   <Link to="/dashboard" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Dashboard</Link>
@@ -207,6 +242,23 @@ const NavbarComponent = () => {
           </SheetTrigger>
           <SheetContent side="right" className="w-64">
             <nav className="flex flex-col gap-4 mt-8">
+              {isAuthenticated && (
+                <div className="mb-2 flex items-center gap-3">
+                  {user?.photoUrl ? (
+                    <img src={user.photoUrl} alt={user?.name || user?.email} className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-foreground">
+                      {user?.name ? user.name.split(' ').map(n => n[0]).slice(0,2).join('') : (user?.email || '').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-sm">{user?.name || user?.email}</span>
+                    <span className="text-xs text-muted-foreground break-all">{user?.email}</span>
+                  </div>
+                </div>
+              )}
+
               <Link to="/communities" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Communities</Link>
               <Link to="/courses" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Courses</Link>
 
