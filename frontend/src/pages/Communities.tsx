@@ -23,6 +23,7 @@ const Communities = () => {
   const { isPublisher, isAdmin } = useAuth();
   const canCreate = isPublisher || isAdmin;
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [enrolledCommunityIds, setEnrolledCommunityIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,6 +50,35 @@ const Communities = () => {
     loadCommunities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, selectedTopics, sortBy, minRating, maxCost, zipcode, distanceKm]);
+
+  // Load user's community enrollments once when auth changes
+  const { user, isLoading: authLoading } = useAuth();
+  useEffect(() => {
+    const loadEnrollments = async () => {
+      if (!user) {
+        setEnrolledCommunityIds(new Set());
+        return;
+      }
+
+      try {
+        const res = await ApiClient.getMyEnrollments({ limit: 200 });
+        const items = res.data || [];
+        const ids = new Set<string>();
+        for (const item of items) {
+          // enrollment may have `community` as id or object
+          if (typeof item.community === 'string') ids.add(item.community);
+          else if (item.community && typeof item.community === 'object' && item.community._id) ids.add(item.community._id);
+          // some datasets may store `communityId`
+          else if (item.communityId) ids.add(item.communityId);
+        }
+        setEnrolledCommunityIds(ids);
+      } catch (err) {
+        setEnrolledCommunityIds(new Set());
+      }
+    };
+
+    if (!authLoading) loadEnrollments();
+  }, [user, authLoading]);
 
   const loadCommunities = async () => {
     try {
@@ -222,7 +252,11 @@ const Communities = () => {
           <>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredCommunities.map((community) => (
-                <CommunityCard key={community._id} community={community} />
+                <CommunityCard
+                  key={community._id}
+                  community={community}
+                  isMember={enrolledCommunityIds.has(community._id)}
+                />
               ))}
             </div>
             

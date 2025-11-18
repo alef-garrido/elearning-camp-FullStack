@@ -12,15 +12,22 @@ import { useAuth } from "@/hooks/use-auth";
 
 interface CommunityCardProps {
   community: Community;
+  // If provided by parent, avoid per-card API call and use this value
+  isMember?: boolean;
 }
 
-export const CommunityCard = ({ community }: CommunityCardProps) => {
+export const CommunityCard = ({ community, isMember: isMemberProp }: CommunityCardProps) => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
-  const [isMember, setIsMember] = useState<boolean>(false);
-  
-  // If user is logged in, check membership status for this community.
+  const [isMember, setIsMember] = useState<boolean>(!!isMemberProp);
+
+  // If parent passed membership status, trust it and skip per-card fetch.
   useEffect(() => {
+    if (typeof isMemberProp === 'boolean') {
+      setIsMember(isMemberProp);
+      return;
+    }
+
     let mounted = true;
     if (!user) {
       setIsMember(false);
@@ -33,13 +40,12 @@ export const CommunityCard = ({ community }: CommunityCardProps) => {
         if (!mounted) return;
         setIsMember(!!res?.data?.enrolled);
       } catch (err) {
-        // ignore and leave as not member
         if (mounted) setIsMember(false);
       }
     })();
 
     return () => { mounted = false; };
-  }, [user, community._id]);
+  }, [isMemberProp, user, community._id]);
   const isOwner = user && (isAdmin || user._id === community.user);
 
   const handleDelete = async (e: React.MouseEvent) => {

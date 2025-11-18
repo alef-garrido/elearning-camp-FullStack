@@ -40,13 +40,13 @@ const NavbarComponent = () => {
 
           <nav className="flex-1 flex flex-col gap-3">
             <Link to="/communities" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
-              Communities
+              Explore Communities
             </Link>
             <Link to="/courses" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
-              Courses
+              All Courses
             </Link>
             <Link to="/dashboard" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
-              Dashboard
+              My Dashboard
             </Link>
             <Link to="/my-enrollments" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
               My Enrollments
@@ -78,7 +78,7 @@ const NavbarComponent = () => {
           </nav>
 
           {/* Profile preview placed above the logout button */}
-          <div className="mt-6 mb-4 flex items-center gap-3">
+          <Link to="/dashboard" className="mt-6 mb-4 flex items-center gap-3 hover:opacity-90" onClick={() => {}}>
             {user?.photoUrl ? (
               <img
                 src={user.photoUrl}
@@ -95,7 +95,7 @@ const NavbarComponent = () => {
               <span className="font-semibold text-sm">{user?.name || user?.email}</span>
               <span className="text-xs text-muted-foreground break-all">{user?.email}</span>
             </div>
-          </div>
+          </Link>
 
           <div className="mt-2">
             <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
@@ -124,7 +124,7 @@ const NavbarComponent = () => {
               <SheetContent side="right" className="w-64">
                 <nav className="flex flex-col gap-4 mt-8">
                   {/* Profile preview for small screens */}
-                  <div className="mb-2 flex items-center gap-3">
+                  <Link to="/dashboard" onClick={() => setOpen(false)} className="mb-2 flex items-center gap-3 hover:opacity-90">
                     {user?.photoUrl ? (
                       <img src={user.photoUrl} alt={user?.name || user?.email} className="w-10 h-10 rounded-full object-cover" />
                     ) : (
@@ -137,7 +137,7 @@ const NavbarComponent = () => {
                       <span className="font-semibold text-sm">{user?.name || user?.email}</span>
                       <span className="text-xs text-muted-foreground break-all">{user?.email}</span>
                     </div>
-                  </div>
+                  </Link>
                   <Link to="/communities" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Communities</Link>
                   <Link to="/courses" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Courses</Link>
                   <Link to="/dashboard" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Dashboard</Link>
