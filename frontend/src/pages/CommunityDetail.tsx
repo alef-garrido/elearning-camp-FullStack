@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Star, MapPin, Globe, Mail, Phone, ArrowLeft, Users, Calendar, CreditCard, Camera } from "lucide-react";
+import { Star, MapPin, Globe, Mail, Phone, ArrowLeft, Users, Calendar, CreditCard, Camera, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
@@ -345,9 +345,35 @@ const CommunityDetail = () => {
                             </CardContent>
                             <div className="px-6 py-4 border-t">
                               {courseEnrollments[course._id] ? (
-                                <Badge className="w-full justify-center bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                  Enrolled ✓
-                                </Badge>
+                                <div className="w-full">
+                                  <div className="mb-3">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-sm font-semibold">
+                                      <Check className="h-4 w-4 text-emerald-600" />
+                                      <span>Enrolled</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/courses/${course._id}/player`);
+                                      }}
+                                      className="w-full bg-emerald-600 text-white hover:opacity-90"
+                                    >
+                                      Continue Course
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/courses/${course._id}`);
+                                      }}
+                                      className="w-1/3"
+                                    >
+                                      Details
+                                    </Button>
+                                  </div>
+                                </div>
                               ) : (
                                 <Button
                                   size="sm"

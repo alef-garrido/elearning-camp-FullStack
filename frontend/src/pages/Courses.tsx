@@ -19,7 +19,7 @@ import {
 
 const Courses = () => {
   const navigate = useNavigate();
-  const { isPublisher, isAdmin } = useAuth();
+  const { isPublisher, isAdmin, user, isLoading: authLoading } = useAuth();
   const canCreate = isPublisher || isAdmin;
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,10 +28,44 @@ const Courses = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [priceRange, setPriceRange] = useState<string>("all");
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadCourses();
   }, [currentPage, skillFilter, priceRange]);
+
+  // When user is present, load their enrollments so we can mark courses as enrolled
+  useEffect(() => {
+    const loadEnrollments = async () => {
+      if (!user) {
+        setEnrolledCourseIds(new Set());
+        return;
+      }
+
+      try {
+        const res = await ApiClient.getMyEnrollments({ limit: 100 });
+        const items = res.data || [];
+        const ids = new Set<string>();
+        for (const item of items) {
+          // enrollment may have `course` as id or object
+          if (typeof item.course === 'string') ids.add(item.course);
+          else if (item.course && typeof item.course === 'object' && item.course._id) ids.add(item.course._id);
+          // some datasets may store `courseId`
+          else if (item.courseId) ids.add(item.courseId);
+        }
+        setEnrolledCourseIds(ids);
+        console.log('[Courses] loaded enrolled course IDs:', Array.from(ids));
+      } catch (err) {
+        // ignore: user may have no enrollments or API may be unavailable
+        setEnrolledCourseIds(new Set());
+      }
+    };
+
+    // Only load when auth has finished loading
+    if (!authLoading) {
+      loadEnrollments();
+    }
+  }, [user, authLoading]);
 
   const loadCourses = async () => {
     try {
@@ -142,7 +176,7 @@ const Courses = () => {
           <>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredCourses.map((course) => (
-                <CourseCard key={course._id} course={course} />
+                <CourseCard key={course._id} course={course} enrolled={enrolledCourseIds.has(course._id)} />
               ))}
             </div>
 

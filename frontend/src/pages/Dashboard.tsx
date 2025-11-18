@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { BookOpen, Award, Star, TrendingUp, Image as ImageIcon, Pencil, Trash2, Users, Plus } from "lucide-react";
+import { BookOpen, Award, Star, TrendingUp, Image as ImageIcon, Pencil, Trash2, Users, Plus, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -24,6 +24,7 @@ const Dashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [myCommunities, setMyCommunities] = useState<Community[]>([]);
   const [myCourses, setMyCourses] = useState<Course[]>([]);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -58,6 +59,21 @@ const Dashboard = () => {
         } catch (error: any) {
           toast.error(error.message || "Failed to load courses");
         }
+      }
+
+      // Load current user's enrollments to mark courses as enrolled in dashboard lists
+      try {
+        const enrollRes = await ApiClient.getMyEnrollments({ limit: 200 });
+        const items = enrollRes.data || [];
+        const ids = new Set<string>();
+        for (const item of items) {
+          if (typeof item.course === 'string') ids.add(item.course);
+          else if (item.course && item.course._id) ids.add(item.course._id);
+          else if (item.courseId) ids.add(item.courseId);
+        }
+        setEnrolledCourseIds(ids);
+      } catch (err) {
+        // ignore
       }
 
       setIsLoading(false);
@@ -238,12 +254,22 @@ const Dashboard = () => {
                     {myCourses.length > 0 ? (
                       <ul className="divide-y divide-border">
                         {myCourses.map(course => (
-                          <li key={course._id} className="py-3 flex items-center justify-between">
-                            <Link to={`/courses/${course._id}`} className="font-medium hover:underline">
-                              {course.title}
-                            </Link>
-                            <span className="text-sm text-muted-foreground">{course.minimumSkill}</span>
-                          </li>
+                              <li key={course._id} className="py-3 flex flex-col">
+                                <div className="flex items-center justify-between">
+                                  <Link to={`/courses/${course._id}`} className="font-medium hover:underline">
+                                    {course.title}
+                                  </Link>
+                                  <span className="text-sm text-muted-foreground">{course.minimumSkill}</span>
+                                </div>
+                                {enrolledCourseIds.has(course._id) && (
+                                  <div className="mt-2">
+                                    <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-sm font-semibold">
+                                      <Check className="h-4 w-4 text-emerald-600" />
+                                      <span>Enrolled</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </li>
                         ))}
                       </ul>
                     ) : (

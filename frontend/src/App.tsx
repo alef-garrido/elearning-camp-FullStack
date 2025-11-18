@@ -12,9 +12,11 @@ import CommunityDetail from "./pages/CommunityDetail";
 import Courses from "./pages/Courses";
 import CreateCourse from "./pages/CreateCourse";
 import CourseDetail from "./pages/CourseDetail";
-import CoursePlayer from "./pages/CoursePlayer";
 import EditCourse from "./pages/EditCourse";
-import Dashboard from "./pages/Dashboard";
+// Lazy-loaded heavy pages to reduce initial bundle
+import { Suspense, lazy } from "react";
+const CoursePlayer = lazy(() => import("./pages/CoursePlayer"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/Layout";
 import MyEnrollments from "./pages/MyEnrollments";
@@ -26,38 +28,40 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/communities" element={<Communities />} />
-            <Route path="/communities/:id/edit" element={<EditCommunity />} />
-            <Route path="/communities/:id" element={<CommunityDetail />} />
-            <Route path="/courses" element={<Courses />} />
-            <Route path="/courses/:id/edit" element={<EditCourse />} />
-            <Route path="/courses/:id" element={<CourseDetail />} />
-            <Route path="/courses/:courseId/player" element={<CoursePlayer />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/communities" element={<Communities />} />
+                <Route path="/communities/:id/edit" element={<EditCommunity />} />
+                <Route path="/communities/:id" element={<CommunityDetail />} />
+                <Route path="/courses" element={<Courses />} />
+                <Route path="/courses/:id/edit" element={<EditCourse />} />
+                <Route path="/courses/:id" element={<CourseDetail />} />
+                <Route path="/courses/:courseId/player" element={<CoursePlayer />} />
+                <Route path="/dashboard" element={<Dashboard />} />
 
-            {/* Admin routes */}
-            <Route path="/admin/dashboard" element={<NotFound />} />
+                {/* Admin routes */}
+                <Route path="/admin/dashboard" element={<NotFound />} />
 
-            {/* Publisher and Admin routes */}
-            <Route path="/my-communities" element={<MyCommunities />} />
-            <Route path="/my-enrollments" element={<MyEnrollments />} />
-            <Route path="/communities/create" element={<CreateCommunity />} />
-            <Route path="/courses/create" element={<CreateCourse />} />
+                {/* Publisher and Admin routes */}
+                <Route path="/my-communities" element={<MyCommunities />} />
+                <Route path="/my-enrollments" element={<MyEnrollments />} />
+                <Route path="/communities/create" element={<CreateCommunity />} />
+                <Route path="/courses/create" element={<CreateCourse />} />
 
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Route>
-          <Route path="/auth" element={<Auth />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Route>
+              <Route path="/auth" element={<Auth />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
   </QueryClientProvider>
 );
 

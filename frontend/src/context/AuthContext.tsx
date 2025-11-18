@@ -57,9 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // No token -> not authenticated
       setIsLoading(false);
     }
-
-    // Listen for auth state changes (login/logout) to re-check user
-    window.addEventListener('authStateChange', checkUserLoggedIn);
+    // Listen for auth state changes (login/logout) to re-check user.
+    // Use the same handler for add/remove to ensure cleanup works.
+    window.addEventListener('authStateChange', handleAuthStateChange);
 
     return () => {
       window.removeEventListener('authStateChange', handleAuthStateChange);

@@ -375,8 +375,8 @@ export class ApiClient {
     });
   }
 
-  // Enrollment Methods
 
+  // Enrollment Methods
   static async enrollCommunity(communityId: string): Promise<ApiResponse<any>> {
     return this.request(`/communities/${communityId}/enroll`, {
       method: 'POST',
