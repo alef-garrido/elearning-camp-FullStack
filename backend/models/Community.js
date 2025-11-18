@@ -162,5 +162,21 @@ CommunitySchema.virtual('courses', {
     justOne: false
 });
 
+// Reverse populate enrollments (separate collection)
+CommunitySchema.virtual('enrollments', {
+    ref: 'Enrollment',
+    localField: '_id',
+    foreignField: 'community',
+    justOne: false,
+});
+
+// Virtual count of enrollments — populate with { path: 'enrollmentCount' }
+CommunitySchema.virtual('enrollmentCount', {
+    ref: 'Enrollment',
+    localField: '_id',
+    foreignField: 'community',
+    count: true,
+});
+
 
 module.exports = mongoose.model('Community', CommunitySchema);

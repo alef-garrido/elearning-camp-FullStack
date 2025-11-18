@@ -4,17 +4,20 @@ import {
   Course,
   Review,
   User,
+  Post,
   AuthResponse,
   LoginInput,
   RegisterInput,
   CreateCommunityInput,
   CreateCourseInput,
+  CreatePostInput,
   CreateReviewInput,
   UpdateUserDetailsInput,
   UpdatePasswordInput,
   ResetPasswordInput,
   PaginationParams,
-  CommunityQueryParams
+  CommunityQueryParams,
+  Lesson,
 } from '@/types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
@@ -202,8 +205,7 @@ export class ApiClient {
   }
 
   // Upload a community photo and return a public URL to access it.
-  // The backend returns the stored filename; we construct a public URL based
-  // on the API base URL and the server's `/uploads` static path.
+  // The backend returns a signed URL from Supabase Storage.
   static async uploadCommunityPhoto(id: string, photo: File): Promise<ApiResponse<Community>> {
     const formData = new FormData();
     formData.append('file', photo);
@@ -214,6 +216,38 @@ export class ApiClient {
     });
 
     return res;
+  }
+
+  // Generic file upload to /api/v1/uploads. Returns the backend response which
+  // includes the file URL and metadata (filename, mimeType, size).
+  static async uploadFile(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await this.request(`/uploads`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    // Backend returns { success: true, data: { url, filename, size, mimeType } }
+    return res;
+  }
+
+  // User Profile Photo Upload
+  static async uploadUserPhoto(photo: File): Promise<{ success: boolean; data: { photo: string; photoUrl: string } }> {
+    const formData = new FormData();
+    formData.append('file', photo);
+    return this.request('/users/photo', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  // Delete authenticated user's profile photo
+  static async deleteUserPhoto(): Promise<{ success: boolean; data: { photo: string | null; photoUrl: string | null } }> {
+    return this.request('/users/photo', {
+      method: 'DELETE'
+    });
   }
 
   // Courses Methods
@@ -313,6 +347,129 @@ export class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Posts / Timeline Methods
+  static async getCommunityPosts(
+    communityId: string,
+    params?: PaginationParams
+  ): Promise<ApiResponse<Post[]>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/communities/${communityId}/posts?${query}`);
+  }
+
+  static async createPost(
+    communityId: string,
+    input: CreatePostInput
+  ): Promise<ApiResponse<Post>> {
+    return this.request(`/communities/${communityId}/posts`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async deletePost(communityId: string, postId: string): Promise<ApiResponse<void>> {
+    return this.request(`/communities/${communityId}/posts/${postId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Enrollment Methods
+  static async getMyEnrollments(params?: PaginationParams): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/enrollments/my-enrollments?${query}`);
+  }
+
+  static async enrollCommunity(communityId: string): Promise<ApiResponse<any>> {
+    return this.request(`/communities/${communityId}/enroll`, {
+      method: 'POST',
+    });
+  }
+
+  static async unenrollCommunity(communityId: string): Promise<ApiResponse<any>> {
+    return this.request(`/communities/${communityId}/enroll`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async getCommunityEnrollments(communityId: string, params?: PaginationParams): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/communities/${communityId}/enrolled?${query}`);
+  }
+
+  static async getEnrollmentStatus(communityId: string): Promise<ApiResponse<{ enrolled: boolean }>> {
+    return this.request(`/communities/${communityId}/enrollment-status`);
+  }
+
+  static async unenrollUserFromCommunity(communityId: string, userId: string): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    query.set('userId', userId);
+    return this.request(`/communities/${communityId}/enroll?${query}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Course enrollment methods (mirror community conventions)
+  static async enrollCourse(courseId: string): Promise<ApiResponse<any>> {
+    return this.request(`/courses/${courseId}/enroll`, {
+      method: 'POST'
+    });
+  }
+
+  static async unenrollCourse(courseId: string): Promise<ApiResponse<any>> {
+    return this.request(`/courses/${courseId}/enroll`, {
+      method: 'DELETE'
+    });
+  }
+
+  static async getCourseEnrollments(courseId: string, params?: PaginationParams): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/courses/${courseId}/enrolled?${query}`);
+  }
+
+  static async getCourseEnrollmentStatus(courseId: string): Promise<ApiResponse<{ enrolled: boolean }>> {
+    return this.request(`/courses/${courseId}/enrollment-status`);
+  }
+
+  static async unenrollUserFromCourse(courseId: string, userId: string): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams();
+    query.set('userId', userId);
+    return this.request(`/courses/${courseId}/enroll?${query}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // Course Content and Progress Methods
+  static async getCourseContent(courseId: string): Promise<ApiResponse<Course>> {
+    return this.request(`/courses/${courseId}/content`);
+  }
+
+  static async getLesson(courseId: string, lessonId: string): Promise<ApiResponse<Lesson>> {
+    return this.request(`/courses/${courseId}/lessons/${lessonId}`);
+  }
+
+  static async updateLessonProgress(
+    courseId: string,
+    lessonId: string,
+    progress: { lastPositionSeconds: number; completed?: boolean }
+  ): Promise<ApiResponse<any>> {
+    return this.request(`/courses/${courseId}/lessons/${lessonId}/progress`, {
+      method: 'POST',
+      body: JSON.stringify(progress),
+    });
+  }
+
+  static async getCourseProgress(courseId: string): Promise<ApiResponse<any>> {
+    return this.request(`/courses/${courseId}/progress`);
+  }
+
 
   // Admin User Management Methods
   static async getUsers(params?: PaginationParams): Promise<ApiResponse<User[]>> {

@@ -1,8 +1,18 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { ArrowRight, BookOpen, Users, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 
 const Home = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // While auth status is being determined, avoid rendering the home UI to prevent flicker.
+  if (isLoading) return null;
+
+  // If user is authenticated, redirect root to their enrollments page.
+  if (isAuthenticated) {
+    return <Navigate to="/my-enrollments" replace />;
+  }
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}

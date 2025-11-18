@@ -11,6 +11,7 @@ import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import { EnrolledUsersList } from "@/components/EnrolledUsersList";
 
 const skillColors = {
   beginner: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -25,6 +26,10 @@ const CourseDetail = () => {
   const [community, setCommunity] = useState<Community | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [enrolled, setEnrolled] = useState(false);
+  const [enrollmentCount, setEnrollmentCount] = useState<number | null>(null);
+  const [enrollLoading, setEnrollLoading] = useState(false);
+  const [communityMember, setCommunityMember] = useState<boolean>(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,6 +53,26 @@ const CourseDetail = () => {
         setCommunity(communityRes.data);
       } else {
         setCommunity(courseData.community);
+      }
+      // If user is authenticated, check enrollment status for this course
+      try {
+        const statusRes = await ApiClient.getCourseEnrollmentStatus(id!);
+        setEnrolled(statusRes.data.enrolled);
+      } catch (e) {
+        // ignore - assume not enrolled
+        setEnrolled(false);
+      }
+      // If user is authenticated, check membership in the community that owns this course
+      try {
+        if (user) {
+          const commId = typeof courseData.community === 'string' ? courseData.community : courseData.community._id;
+          const commStatus = await ApiClient.getEnrollmentStatus(commId);
+          setCommunityMember(!!commStatus.data.enrolled);
+        } else {
+          setCommunityMember(false);
+        }
+      } catch (e) {
+        setCommunityMember(false);
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to load course");
@@ -156,24 +181,20 @@ const CourseDetail = () => {
               <h2 className="text-xl sm:text-2xl font-semibold mb-4">What You'll Learn</h2>
               <Card>
                 <CardContent className="pt-6">
-                  <ul className="space-y-2 text-sm sm:text-base text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Comprehensive understanding of modern web development</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Build real-world projects from scratch</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Master industry-standard tools and practices</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Deploy applications to production environments</span>
-                    </li>
-                  </ul>
+                  {course.lessons && course.lessons.length > 0 ? (
+                    <ul className="space-y-2 text-sm sm:text-base text-muted-foreground">
+                      {course.lessons.map((lesson, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                          <span>{lesson.title}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No lessons have been added to this course yet.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -223,15 +244,93 @@ const CourseDetail = () => {
 
                 <Separator />
 
-                <Button className="w-full bg-gradient-primary hover:opacity-90">
-                  Enroll Now
-                </Button>
+                {/* If user is not a member of the community, prompt them to join first */}
+                {!isOwner && !isAdmin && community && !communityMember ? (
+                  <Button
+                    className="w-full bg-muted/80 text-muted-foreground"
+                    onClick={() => navigate(`/communities/${typeof course.community === 'string' ? course.community : course.community._id}`)}
+                  >
+                    Join community to enroll
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full bg-gradient-primary hover:opacity-90"
+                    disabled={enrollLoading}
+                    onClick={async () => {
+                      // If not logged in, redirect to auth
+                      if (!user) {
+                        navigate('/auth');
+                        return;
+                      }
+
+                      setEnrollLoading(true);
+                      const prevEnrolled = enrolled;
+                      const prevCount = enrollmentCount;
+
+                      if (!enrolled) {
+                        // optimistic
+                        setEnrolled(true);
+                        setEnrollmentCount((c) => (c ?? 0) + 1);
+                        try {
+                          const res = await ApiClient.enrollCourse(id!);
+                          if ((res as any).enrollmentCount !== undefined) {
+                            setEnrollmentCount((res as any).enrollmentCount as number);
+                          }
+                          toast.success('Enrolled in course');
+                        } catch (err: any) {
+                          setEnrolled(prevEnrolled);
+                          setEnrollmentCount(prevCount);
+                          toast.error(err.message || 'Failed to enroll');
+                        } finally {
+                          setEnrollLoading(false);
+                        }
+                      } else {
+                        // Unenroll
+                        setEnrolled(false);
+                        setEnrollmentCount((c) => (c ?? 1) - 1);
+                        try {
+                          const res = await ApiClient.unenrollCourse(id!);
+                          if ((res as any).enrollmentCount !== undefined) {
+                            setEnrollmentCount((res as any).enrollmentCount as number);
+                          }
+                          toast.success('You have left the course');
+                        } catch (err: any) {
+                          setEnrolled(prevEnrolled);
+                          setEnrollmentCount(prevCount);
+                          toast.error(err.message || 'Failed to leave course');
+                        } finally {
+                          setEnrollLoading(false);
+                        }
+                      }
+                    }}
+                  >
+                    {enrollLoading ? 'Processing...' : enrolled ? 'Leave Course' : 'Enroll Now'}
+                  </Button>
+                )}
                 
                 <p className="text-xs text-center text-muted-foreground">
                   30-day money-back guarantee
                 </p>
               </CardContent>
             </Card>
+
+            {/* Enrolled Users Section - only show to owners/admins */}
+            {isOwner && (
+              <div className="mt-8">
+                {/* EnrolledUsersList supports courseId prop now */}
+                {/* @ts-ignore */}
+                <EnrolledUsersList
+                  courseId={id!}
+                  isOwner={isOwner}
+                  isAdmin={user?.role === 'admin'}
+                  onUserRemoved={() => {
+                    // Refresh enrollment count when a user is removed
+                    // trigger a reload of course data
+                    loadCourseData();
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -2,7 +2,6 @@ const express = require('express');
 const path = require('path');
 const dotenv = require('dotenv');
 const morgan = require('morgan');
-const fileupload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
 const errorHandler = require('./middleware/error');
 const mongoSanitize = require('./middleware/mongoSanitize');
@@ -26,8 +25,10 @@ const auth = require('./routes/auth');
 const users = require('./routes/users');
 const reviews = require('./routes/reviews');
 const enrollments = require('./routes/enrollments');
+const uploads = require('./routes/uploads');
 
 const app = express();
+
 
 // Configure CORS - Simple configuration for development
 app.use((req, res, next) => {
@@ -74,11 +75,10 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// File uploading
-app.use(fileupload({
-  createParentPath: true,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
-}));
+// Note: `express-fileupload` was removed because multer is used per-route.
+// Keeping a global multipart body parser can consume the request stream and
+// interfere with multer's ability to handle multipart/form-data. Multer is
+// applied at the route level where needed (see `middleware/upload.js`).
 
 // Sanitize data - after parsing but before route handling
 app.use(mongoSanitize);
@@ -145,8 +145,8 @@ app.use('/api/v1', apiLimiter);
 // Prevent http param pollution
 app.use(hpp());
 
-// Set static folder
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve API docs under /docs instead of the root
+app.use('/docs', express.static(path.join(__dirname, 'public')));
 
 // Mount routers - order matters for nested routes
 app.use('/api/v1/auth', auth);
@@ -155,6 +155,7 @@ app.use('/api/v1/communities', communities); // This should come before courses 
 app.use('/api/v1/courses', courses);
 app.use('/api/v1/reviews', reviews);
 app.use('/api/v1/enrollments', enrollments);
+app.use('/api/v1/uploads', uploads);
 
 // Error handler middleware - should be last
 app.use(errorHandler);

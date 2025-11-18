@@ -4,6 +4,7 @@ import { User } from '@/types/api';
 
 interface AuthContextType {
   user: User | null;
+  setUser?: (user: User | null) => void;
   isLoading: boolean;
   isPublisher: boolean;
   isAdmin: boolean;
@@ -48,13 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [checkUserLoggedIn]);
 
   useEffect(() => {
-    // Run once on mount to populate user
-    checkUserLoggedIn();
+    // Only attempt to fetch current user if we have a token stored.
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      checkUserLoggedIn();
+    } else {
+      // No token -> not authenticated
+      setIsLoading(false);
+    }
 
-    // Listen for global auth state changes (login/logout). Use the
-    // guarded handler to avoid re-entrant calls when a request fails
-    // with 401 and the ApiClient dispatches the event.
-    window.addEventListener('authStateChange', handleAuthStateChange);
+    // Listen for auth state changes (login/logout) to re-check user
+    window.addEventListener('authStateChange', checkUserLoggedIn);
 
     return () => {
       window.removeEventListener('authStateChange', handleAuthStateChange);
@@ -73,12 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     user,
+    setUser,
     isLoading,
     isPublisher,
     isAdmin,
     isAuthenticated,
     logout
-  }), [user, isLoading, isPublisher, isAdmin, isAuthenticated]);
+  }), [user, setUser, isLoading, isPublisher, isAdmin, isAuthenticated]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

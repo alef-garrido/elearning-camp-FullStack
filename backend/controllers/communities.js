@@ -3,6 +3,8 @@ const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/async');
 const geocoder = require('../utils/geocoder');
 const Community = require('../models/Community');
+const Enrollment = require('../models/Enrollment');
+const { enhanceCommunityWithPhotoUrl } = require('../utils/supabasePhotoUrl');
 
 
 // @desc      Get all communities
@@ -10,6 +12,11 @@ const Community = require('../models/Community');
 // @access    Public
 exports.getCommunities = asyncHandler(async (req, res, next) => {
    
+    // Enhance all communities with photoUrl
+    if (res.advancedResults && res.advancedResults.data) {
+      res.advancedResults.data = await enhanceCommunityWithPhotoUrl(res.advancedResults.data);
+    }
+    
     res
       .status(200)
       .json(res.advancedResults);
@@ -21,16 +28,137 @@ exports.getCommunities = asyncHandler(async (req, res, next) => {
 // @access    Public
 exports.getCommunity = asyncHandler(async (req, res, next) => {
  
-    const community = await Community.findById(req.params.id);
+  // Include virtual enrollment count
+  const community = await Community.findById(req.params.id).populate('enrollmentCount');
 
     if (!community) {
       return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
     }
     
-    res.status(200).json({ success: true, data: community });
+    // Add signed URL for photo if it exists
+    const enhancedCommunity = await enhanceCommunityWithPhotoUrl(community);
+    
+    res.status(200).json({ success: true, data: enhancedCommunity });
 
 
 })
+
+// @desc      Enroll current user in a community
+// @route     POST /api/v1/communities/:id/enroll
+// @access    Private
+exports.enrollCommunity = asyncHandler(async (req, res, next) => {
+  const communityId = req.params.id;
+
+  const community = await Community.findById(communityId);
+  if (!community) {
+    return next(new ErrorResponse(`Community not found with id of ${communityId}`, 404));
+  }
+
+  // Prevent duplicate active enrollment
+  const existing = await Enrollment.findOne({ user: req.user.id, community: communityId, status: 'active' });
+  if (existing) {
+    return next(new ErrorResponse('User is already enrolled in this community', 409));
+  }
+
+  try {
+    const enrollment = await Enrollment.create({
+      user: req.user.id,
+      community: communityId,
+      status: 'active'
+    });
+
+    const count = await Enrollment.countDocuments({ community: communityId, status: 'active' });
+
+    res.status(201).json({ success: true, data: enrollment, enrollmentCount: count });
+  } catch (err) {
+    // Duplicate enrollment -> unique index violation (race)
+    if (err.code === 11000) {
+      return next(new ErrorResponse('User is already enrolled in this community', 409));
+    }
+    return next(err);
+  }
+});
+
+// @desc      Unenroll current user from a community (soft-cancel)
+// @route     DELETE /api/v1/communities/:id/enroll
+// @access    Private
+exports.unenrollCommunity = asyncHandler(async (req, res, next) => {
+  const communityId = req.params.id;
+  // Support admin/owner unenrolling other users via ?userId=<id>
+  const targetUserId = req.query.userId || req.user.id;
+
+  // If attempting to unenroll someone else, allow only community owner or admin
+  if (targetUserId.toString() !== req.user.id.toString()) {
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return next(new ErrorResponse(`Community not found with id of ${communityId}`, 404));
+    }
+    if (community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+      return next(new ErrorResponse('Not authorized to unenroll other users', 403));
+    }
+  }
+
+  const enrollment = await Enrollment.findOne({ user: targetUserId, community: communityId, status: 'active' });
+  if (!enrollment) {
+    return next(new ErrorResponse('Enrollment not found', 404));
+  }
+
+  // Soft-cancel for history
+  enrollment.status = 'cancelled';
+  await enrollment.save();
+
+  const count = await Enrollment.countDocuments({ community: communityId, status: 'active' });
+
+  res.status(200).json({ success: true, data: {}, enrollmentCount: count });
+});
+
+// @desc      Get enrolled users for a community (paginated)
+// @route     GET /api/v1/communities/:id/enrolled
+// @access    Private (only community owner or admin)
+exports.getEnrolledUsers = asyncHandler(async (req, res, next) => {
+  const communityId = req.params.id;
+
+  const community = await Community.findById(communityId);
+  if (!community) {
+    return next(new ErrorResponse(`Community not found with id of ${communityId}`, 404));
+  }
+
+  // Only owner or admin may list enrolled users
+  if (community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    return next(new ErrorResponse('Not authorized to view enrolled users', 403));
+  }
+
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 25;
+  const skip = (page - 1) * limit;
+
+  const total = await Enrollment.countDocuments({ community: communityId, status: 'active' });
+  const enrollments = await Enrollment.find({ community: communityId, status: 'active' })
+    .populate('user', 'name email role createdAt')
+    .skip(skip)
+    .limit(limit)
+    .sort({ enrolledAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: enrollments.length,
+    pagination: {
+      page,
+      limit,
+      total
+    },
+    data: enrollments
+  });
+});
+
+// @desc      Get current user's enrollment status for a community
+// @route     GET /api/v1/communities/:id/enrollment-status
+// @access    Private
+exports.getEnrollmentStatus = asyncHandler(async (req, res, next) => {
+  const communityId = req.params.id;
+  const enrollment = await Enrollment.findOne({ community: communityId, user: req.user.id, status: 'active' });
+  res.status(200).json({ success: true, data: { enrolled: !!enrollment } });
+});
 
 // @desc      Create new community
 // @route     POST /api/v1/communities
@@ -129,83 +257,132 @@ exports.getCommunitiesInRadius = asyncHandler(async (req, res, next) => {
       location: { $geoWithin: { $centerSphere: [ [ lng, lat ], radius ] } }
     });
 
+    // Enhance communities with photoUrl
+    const enhancedCommunities = await enhanceCommunityWithPhotoUrl(communities);
+
     res.status(200).json({
       success: true,
-      count: communities.length,
-      data: communities
+      count: enhancedCommunities.length,
+      data: enhancedCommunities
     });
   
 });
 
-//@desc   Upload photo for community
+//@desc   Upload photo for community (uses Supabase Storage via multer middleware)
 //@route  PUT /api/v1/communities/:id/photo
 //@access Private
 exports.communityPhotoUpload = asyncHandler(async (req, res, next) => {
-  // Debug logging: capture request params and user
   console.log('[communityPhotoUpload] called with params:', req.params);
-  try {
-    console.log('[communityPhotoUpload] authenticated user id:', req.user && req.user.id);
-  } catch (e) {
-    console.log('[communityPhotoUpload] req.user not available');
+  
+  if (!req.file) {
+    console.log('[communityPhotoUpload] no file in req.file (multer)');
+    return next(new ErrorResponse('Please upload a file', 400));
   }
 
-    const community = await Community.findById(req.params.id);
+  const community = await Community.findById(req.params.id);
 
-    if (!community) {
-      console.log(`[communityPhotoUpload] community not found: ${req.params.id}`);
-      return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
-    }
+  if (!community) {
+    console.log(`[communityPhotoUpload] community not found: ${req.params.id}`);
+    return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
+  }
 
-    // Make sure user is community owner
-    if(community.user.toString() !== req.user.id && req.user.role !== 'admin') {
-        console.log(`[communityPhotoUpload] unauthorized: user ${req.user.id} cannot update community ${community._id}`);
-        return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this community`, 401));
-    }
+  // Make sure user is community owner
+  if (community.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    console.log(`[communityPhotoUpload] unauthorized: user ${req.user.id} cannot update community ${community._id}`);
+    return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this community`, 401));
+  }
 
-    if (!req.files) {
-      console.log('[communityPhotoUpload] no files found on request (req.files is falsy)');
-      return next(new ErrorResponse(`Please upload a file`, 400));
-    }
+  // Use the generic upload helper from uploads controller
+  const uploadsController = require('./uploads');
+  const supabase = require('../utils/supabaseClient');
+  const { v4: uuidv4 } = require('uuid');
 
-    const file = req.files.file;
-    console.log('[communityPhotoUpload] received file field keys:', Object.keys(req.files || {}));
+  const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'uploads';
+  const EXPIRY_SECONDS = 365 * 24 * 60 * 60; // 1 year
 
-    // Make sure the image is a photo
-    if (!file.mimetype.startsWith('image')) {
-      console.log(`[communityPhotoUpload] invalid mimetype: ${file.mimetype}`);
-      return next(new ErrorResponse(`Please upload an image file`, 400));
-    }
+  const file = req.file;
+  const fileId = uuidv4();
+  const ext = path.extname(file.originalname).toLowerCase();
+  const storagePath = `uploads/${fileId}${ext}`;
 
-    // Check filesize
-    const maxUpload = process.env.MAX_FILE_UPLOAD || 'unknown';
-    if (file.size > process.env.MAX_FILE_UPLOAD) {
-      console.log(`[communityPhotoUpload] file too large: ${file.size} > ${process.env.MAX_FILE_UPLOAD}`);
-      return next(new ErrorResponse(`Please upload an image less than ${process.env.MAX_FILE_UPLOAD}`, 400));
-    }
-
-    // Create custom filename
-    const originalName = file.name;
-    file.name = `photo_${community._id}${path.parse(originalName).ext}`;
-    const destPath = `${process.env.FILE_UPLOAD_PATH}/${file.name}`;
-    console.log(`[communityPhotoUpload] saving file. originalName=${originalName}, newName=${file.name}, dest=${destPath}`);
-
-    try {
-      // Move file to upload directory
-      await file.mv(destPath);
-      console.log(`[communityPhotoUpload] file.mv successful -> ${destPath}`);
-      
-      // Update community photo in database and get updated document
-      community.photo = file.name;
-      await community.save();
-
-      // Return the full updated community document
-      res.status(200).json({
-        success: true,
-        data: community
+  try {
+    // Upload file to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(storagePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false
       });
-    } catch (err) {
-      console.error('[communityPhotoUpload] File upload error:', err && err.stack ? err.stack : err);
-      return next(new ErrorResponse(`Problem with file upload`, 500));
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      return next(new ErrorResponse(`Failed to upload file: ${error.message}`, 500));
     }
-  
+
+    // Generate a signed public URL
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .createSignedUrl(storagePath, EXPIRY_SECONDS);
+
+    if (signedError) {
+      console.error('Supabase signed URL error:', signedError);
+      return next(new ErrorResponse('Failed to generate signed URL', 500));
+    }
+
+    // Store the filename (not full URL) in the database
+    // The frontend or gallery will construct the URL if needed
+    const filename = `${fileId}${ext}`;
+    community.photo = filename;
+    await community.save();
+
+    console.log(`[communityPhotoUpload] photo updated for community ${community._id}`);
+
+    // Return updated community with photo URL
+    res.status(200).json({
+      success: true,
+      data: {
+        ...community.toObject(),
+        photo: filename,
+        photoUrl: signedData.signedUrl // Include the signed URL for frontend convenience
+      }
+    });
+  } catch (err) {
+    console.error('[communityPhotoUpload] File upload error:', err);
+    return next(new ErrorResponse('Problem with file upload', 500));
+  }
+});
+
+// @desc      Get all communities a user is enrolled in
+// @route     GET /api/v1/enrollments/my-enrollments
+// @access    Private
+exports.getMyEnrollments = asyncHandler(async (req, res, next) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
+  const total = await Enrollment.countDocuments({ user: req.user.id, status: 'active' });
+  const enrollments = await Enrollment.find({ user: req.user.id, status: 'active' })
+    .populate({
+      path: 'community',
+      populate: {
+        path: 'enrollmentCount' // Populate the virtual field
+      }
+    })
+    .populate({
+      path: 'course'
+    })
+    .skip(skip)
+    .limit(limit)
+    .sort({ enrolledAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: enrollments.length,
+    pagination: {
+      page,
+      limit,
+      total
+    },
+    data: enrollments
+  });
 });

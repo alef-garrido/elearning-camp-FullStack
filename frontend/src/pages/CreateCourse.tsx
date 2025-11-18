@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +22,11 @@ const SKILL_LEVELS = ["beginner", "intermediate", "advanced"];
 
 const CreateCourse = () => {
   const navigate = useNavigate();
-  const { communityId } = useParams(); // Optional: If coming from a community page
+  // Support both route params and query string params for communityId.
+  const { communityId: routeCommunityId } = useParams(); // Optional: If coming from a community page
+  const { search } = useLocation();
+  const queryParams = new URLSearchParams(search);
+  const qsCommunityId = queryParams.get('communityId') || '';
   const canCreateCourse = useFeatureFlag('course-creation');
 
   useEffect(() => {
@@ -41,7 +45,7 @@ const CreateCourse = () => {
     membership: 0,
     minimumSkill: "beginner",
     scholarshipsAvailable: false,
-    communityId: communityId || "", // If not provided in URL, empty string
+    communityId: routeCommunityId || qsCommunityId || "", // If not provided in URL, empty string
   });
 
   // Load communities for the select dropdown
@@ -127,7 +131,7 @@ const CreateCourse = () => {
                   <Select
                     value={formData.communityId}
                     onValueChange={(value) => handleChange("communityId", value)}
-                    disabled={!!communityId} // Disable if communityId is provided in URL
+                    disabled={!!(routeCommunityId || qsCommunityId)} // Disable if communityId is provided in URL or query
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a community" />

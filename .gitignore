@@ -493,6 +493,7 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # VS Code files for those working on multiple tools
+
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -519,3 +520,8 @@ FodyWeavers.xsd
 # Next.js build
 **/.next/
 **/out/
+.gemini/
+
+# Local planning and debugging notes - keep out of git history
+PHOTO_UPLOAD_FIX.md
+IMPLEMENTATION_CHECKLIST.md

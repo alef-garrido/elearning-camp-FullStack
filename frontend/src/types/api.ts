@@ -33,9 +33,11 @@ export interface Community {
   hasLiveEvents?: boolean;
   isPaid?: boolean;
   photo?: string;
+  photoUrl?: string; // Signed URL from Supabase Storage
   averageRating?: number;
   averageCost?: number;
   user: string;
+  enrollmentCount?: number;
   // Optional populated courses array (present when backend populates or frontend joins data)
   courses?: Course[];
   createdAt: string;
@@ -65,7 +67,25 @@ export interface Course {
   scholarshipsAvailable: boolean;
   community: string | Community;
   user: string;
+  lessons?: Lesson[];
   createdAt: string;
+}
+
+export interface Lesson {
+  _id: string;
+  title: string;
+  type: 'video' | 'pdf' | 'article';
+  url: string;
+  durationSeconds?: number;
+  order?: number;
+  description?: string;
+  attachments?: Attachment[];
+}
+
+export interface Attachment {
+  name: string;
+  url: string;
+  type: string;
 }
 
 export interface CreateCourseInput {
@@ -76,6 +96,23 @@ export interface CreateCourseInput {
   minimumSkill: 'beginner' | 'intermediate' | 'advanced';
   scholarshipsAvailable: boolean;
   communityId: string;
+}
+
+// Lesson Progress State Type
+export type LessonProgressState = 'pending' | 'blocked' | 'in-progress' | 'completed';
+
+// Lesson Progress Interfaces
+export interface LessonProgress {
+  lesson: string;
+  lastPositionSeconds?: number;
+  completed?: boolean;
+  state?: LessonProgressState;
+  updatedAt?: string;
+}
+
+// Course Progress Summary: maps lesson ID to its progress state
+export interface CourseLessonStates {
+  [lessonId: string]: LessonProgressState;
 }
 
 // Review Interfaces
@@ -95,6 +132,22 @@ export interface CreateReviewInput {
   rating: number;
 }
 
+// Enrollment Interfaces
+export interface Enrollment {
+  _id: string;
+  user: User;
+  community: Community;
+  status: 'active' | 'cancelled';
+  enrolledAt: string;
+}
+
+export interface EnrolledCommunity {
+  _id: string;
+  community: Community & { enrollmentCount: number };
+  status: 'active' | 'cancelled';
+  enrolledAt: string;
+}
+
 // User Interfaces
 export interface User {
   _id: string;
@@ -102,6 +155,8 @@ export interface User {
   email: string;
   role: 'user' | 'publisher' | 'admin';
   createdAt: string;
+  photo?: string;
+  photoUrl?: string; // Signed URL from Supabase Storage
 }
 
 // Auth Interfaces
@@ -150,4 +205,20 @@ export interface CommunityQueryParams extends PaginationParams {
   averageCost?: number;
   averageRating?: number;
   user?: string;
+}
+
+// Post / Timeline Interfaces
+export interface Post {
+  _id: string;
+  community: string | Community;
+  user: string | User;
+  content: string;
+  attachments?: Attachment[] | string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreatePostInput {
+  content: string;
+  attachments?: string[];
 }

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, LogOut, User, Menu, Plus, GraduationCap } from "lucide-react";
+import { BookOpen, LogOut, User, Menu, Plus, GraduationCap, Users } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/use-auth";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
@@ -141,8 +141,9 @@ const NavbarComponent = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/communities" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Communities</Link>
-          <Link to="/courses" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Courses</Link>
+          <Link to="/communities" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+            Explore Communities
+          </Link>
 
           {isAuthenticated ? (
             <DropdownMenu>
@@ -157,7 +158,7 @@ const NavbarComponent = () => {
                   Dashboard
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/my-enrollments')}>
-                  <User className="mr-2 h-4 w-4" />
+                  <Users className="mr-2 h-4 w-4" />
                   My Enrollments
                 </DropdownMenuItem>
                 {canManageUsers && (
@@ -211,7 +212,20 @@ const NavbarComponent = () => {
 
               {isAuthenticated ? (
                 <>
-                  <Link to="/dashboard" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Dashboard</Link>
+                  <Link 
+                    to="/dashboard" 
+                    className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+                    onClick={() => setOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/my-enrollments"
+                    className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+                    onClick={() => setOpen(false)}
+                  >
+                    My Enrollments
+                  </Link>
                   {(canCreateCommunity || canCreateCourse) && (
                     <>
                       <Link to="/my-communities" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>My Communities</Link>

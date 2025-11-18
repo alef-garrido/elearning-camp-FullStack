@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Community } from "../types/api";
+import { Community, Course } from "../types/api";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 const MyCommunities = () => {
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [coursesByCommunity, setCoursesByCommunity] = useState<Record<string, Course[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -33,6 +34,32 @@ const MyCommunities = () => {
 
     fetchMyCommunities();
   }, [user]);
+
+  // Load courses for each community so publishers can manage their courses
+  useEffect(() => {
+    const loadCourses = async () => {
+      if (!user || !communities || communities.length === 0) return;
+
+      const results: Record<string, Course[]> = {};
+
+      await Promise.all(communities.map(async (community) => {
+        try {
+          const res = await ApiClient.getCommunityCourses(community._id, { page: 1, limit: 50 });
+          // Only include courses created by the current user (publisher owns them)
+          const myCourses = (res.data || []).filter((c: Course) => c.user === user._id);
+          results[community._id] = myCourses;
+        } catch (err) {
+          // If fetching courses fails for a community, continue without blocking
+          console.warn(`Failed to load courses for community ${community._id}:`, err);
+          results[community._id] = [];
+        }
+      }));
+
+      setCoursesByCommunity(results);
+    };
+
+    loadCourses();
+  }, [user, communities]);
 
   if (loading) {
     return (
@@ -111,11 +138,30 @@ const MyCommunities = () => {
                   className="w-full"
                   onClick={(e) => {
                     e.preventDefault();
-                    navigate(`/courses/new?communityId=${community._id}`);
+                    // Route matches the CreateCourse path defined in App.tsx
+                    navigate(`/courses/create?communityId=${community._id}`);
                   }}
                 >
                   Add New Course
                 </Button>
+                {/* Courses list for this community (only courses owned by current user) */}
+                <div className="mt-3">
+                  {coursesByCommunity[community._id] && coursesByCommunity[community._id].length > 0 ? (
+                    <div className="space-y-2">
+                      {coursesByCommunity[community._id].map((course) => (
+                        <div key={course._id} className="flex items-center justify-between gap-2">
+                          <div className="text-sm font-medium">{course.title}</div>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => navigate(`/courses/${course._id}`)}>View</Button>
+                            <Button size="sm" onClick={() => navigate(`/courses/${course._id}/edit`)}>Edit</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">No courses yet</div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
