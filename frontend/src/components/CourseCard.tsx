@@ -28,6 +28,11 @@ export const CourseCard = ({ course, enrolled }: CourseCardProps) => {
   const [isEnrolled, setIsEnrolled] = useState<boolean>(!!enrolled);
   const isOwner = user && (isAdmin || user._id === course.user);
 
+  // Keep internal isEnrolled state in sync when parent updates the `enrolled` prop
+  useEffect(() => {
+    setIsEnrolled(!!enrolled);
+  }, [enrolled]);
+
   const handleCardClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
