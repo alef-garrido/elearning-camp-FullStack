@@ -172,6 +172,7 @@ const Communities = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="relevance">Relevance</SelectItem>
+                <SelectItem value="averageRating">Rating (low → high)</SelectItem>
                 <SelectItem value="-averageRating">Rating (high → low)</SelectItem>
                 <SelectItem value="averageCost">Cost (low → high)</SelectItem>
                 <SelectItem value="-createdAt">Newest</SelectItem>
