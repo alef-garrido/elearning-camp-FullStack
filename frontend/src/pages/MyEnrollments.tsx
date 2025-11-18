@@ -4,9 +4,14 @@ import { Button } from "@/components/ui/button";
 import { ApiClient } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
+import { Community, Course } from "@/types/api";
+
+interface EnrolledCommunity extends Community {
+  courses: Course[];
+}
 
 const MyEnrollments = () => {
-  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [enrolledCommunities, setEnrolledCommunities] = useState<EnrolledCommunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -16,8 +21,28 @@ const MyEnrollments = () => {
     const fetchEnrollments = async () => {
       try {
         if (!user) return;
-        const res = await ApiClient.getMyEnrollments({ page: 1, limit: 50 });
-        setEnrollments(res.data || []);
+        const res = await ApiClient.getMyEnrollments({ page: 1, limit: 100 });
+        
+        const enrollments = res.data || [];
+        
+        const communityMap: { [key: string]: EnrolledCommunity } = {};
+
+        enrollments.forEach((enrollment: any) => {
+          if (enrollment.community) {
+            const communityId = enrollment.community._id;
+            if (!communityMap[communityId]) {
+              communityMap[communityId] = {
+                ...enrollment.community,
+                courses: [],
+              };
+            }
+            if (enrollment.course) {
+              communityMap[communityId].courses.push(enrollment.course);
+            }
+          }
+        });
+
+        setEnrolledCommunities(Object.values(communityMap));
         setError(null);
       } catch (err: any) {
         console.error('Failed to fetch enrollments', err);
@@ -55,43 +80,52 @@ const MyEnrollments = () => {
         <h1 className="text-3xl font-bold">My Enrollments</h1>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        {enrollments.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">You have no enrollments yet.</p>
-            <div className="mt-6">
-              <Button onClick={() => navigate('/courses')}>Browse Courses</Button>
-            </div>
+      {enrolledCommunities.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">You have no enrollments yet.</p>
+          <div className="mt-6">
+            <Button onClick={() => navigate('/communities')}>Browse Communities</Button>
           </div>
-        )}
-
-        {enrollments.map((enrollment) => (
-          <Card key={enrollment._id || enrollment.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-xl">
-                {enrollment.course?.title || enrollment.course?.name || enrollment.title || 'Enrollment'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground mb-2">
-                {enrollment.course?.description || enrollment.community?.name || ''}
-              </div>
-              <div className="flex gap-2">
-                {enrollment.course?._id && (
-                  <Button onClick={() => navigate(`/courses/${enrollment.course._id}/player`)}>
-                    Open Course
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {enrolledCommunities.map((community) => (
+            <Card key={community._id} className="overflow-hidden">
+              <CardHeader className="bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl">{community.name}</CardTitle>
+                  <Button variant="outline" onClick={() => navigate(`/communities/${community._id}`)}>
+                    Visit Community
                   </Button>
+                </div>
+                <p className="text-sm text-muted-foreground pt-2">{community.description}</p>
+              </CardHeader>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Enrolled Courses</h3>
+                {community.courses.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {community.courses.map((course) => (
+                      <Card key={course._id} className="hover:shadow-md transition-shadow">
+                        <CardHeader>
+                          <CardTitle className="text-lg">{course.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{course.description}</p>
+                          <Button size="sm" onClick={() => navigate(`/courses/${course._id}`)}>
+                            Go to Course
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No courses enrolled in this community yet.</p>
                 )}
-                {enrollment.community?._id && (
-                  <Button variant="outline" onClick={() => navigate(`/communities/${enrollment.community._id}`)}>
-                    Open Community
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
