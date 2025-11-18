@@ -19,6 +19,14 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
+// Throttle authStateChange dispatch to avoid event storms when many requests
+// return 401 in quick succession (for example during app startup). This
+// prevents multiple components from receiving back-to-back events and
+// re-triggering authentication checks which can lead to request floods
+// and server-side rate limiting (429).
+let lastAuthDispatch = 0;
+const AUTH_DISPATCH_COOLDOWN_MS = 1000; // 1 second
+
 class ApiError extends Error {
   constructor(message: string, public status: number) {
     super(message);
@@ -63,7 +71,11 @@ export class ApiClient {
 
     if (!response.ok) {
       if (response.status === 401) {
-        window.dispatchEvent(new Event('authStateChange'));
+        const now = Date.now();
+        if (now - lastAuthDispatch > AUTH_DISPATCH_COOLDOWN_MS) {
+          lastAuthDispatch = now;
+          window.dispatchEvent(new Event('authStateChange'));
+        }
       }
       const errorBody = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
       const errorMessage = errorBody.error || errorBody.message || `Request failed with status ${response.status}`;
@@ -256,6 +268,13 @@ export class ApiClient {
     if (params?.page) query.set('page', params.page.toString());
     if (params?.limit) query.set('limit', params.limit.toString());
     return this.request(`/communities/${communityId}/courses?${query}`);
+  }
+
+  static async getMyEnrollments(params?: PaginationParams): Promise<ApiResponse<any[]>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request(`/enrollments/my-enrollments?${query}`);
   }
 
   // Reviews Methods

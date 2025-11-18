@@ -18,6 +18,7 @@ import { Layout } from "./components/Layout";
 const queryClient = new QueryClient();
 
 import MyCommunities from "./pages/MyCommunities";
+import MyEnrollments from "./pages/MyEnrollments";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,6 +40,7 @@ const App = () => (
 
             {/* Publisher and Admin routes */}
             <Route path="/my-communities" element={<MyCommunities />} />
+            <Route path="/my-enrollments" element={<MyEnrollments />} />
             <Route path="/communities/create" element={<CreateCommunity />} />
             <Route path="/courses/create" element={<CreateCourse />} />
 

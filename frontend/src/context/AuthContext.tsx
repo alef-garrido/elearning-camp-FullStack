@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { ApiClient } from '@/lib/api';
 import { User } from '@/types/api';
 
@@ -31,15 +31,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Prevent re-entrant calls caused by the ApiClient dispatching an
+  // 'authStateChange' event on 401 responses. Without this guard a 401
+  // during `getCurrentUser` can trigger the event which calls
+  // `checkUserLoggedIn` again and create a rapid loop of requests.
+  const isCheckingRef = useRef(false);
+
+  const handleAuthStateChange = useCallback(async () => {
+    if (isCheckingRef.current) return;
+    isCheckingRef.current = true;
+    try {
+      await checkUserLoggedIn();
+    } finally {
+      isCheckingRef.current = false;
+    }
+  }, [checkUserLoggedIn]);
+
   useEffect(() => {
+    // Run once on mount to populate user
     checkUserLoggedIn();
 
-    window.addEventListener('authStateChange', checkUserLoggedIn);
+    // Listen for global auth state changes (login/logout). Use the
+    // guarded handler to avoid re-entrant calls when a request fails
+    // with 401 and the ApiClient dispatches the event.
+    window.addEventListener('authStateChange', handleAuthStateChange);
 
     return () => {
-      window.removeEventListener('authStateChange', checkUserLoggedIn);
+      window.removeEventListener('authStateChange', handleAuthStateChange);
     };
-  }, [checkUserLoggedIn]);
+  }, [checkUserLoggedIn, handleAuthStateChange]);
 
   const logout = useCallback(async () => {
     await ApiClient.logout();
