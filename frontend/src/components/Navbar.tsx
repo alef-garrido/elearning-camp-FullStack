@@ -16,6 +16,7 @@ const NavbarComponent = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { isAuthenticated, logout, user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const canCreateCommunity = useFeatureFlag('community-creation');
   const canCreateCourse = useFeatureFlag('course-creation');
   const canManageUsers = useFeatureFlag('user-management');
@@ -51,6 +52,12 @@ const NavbarComponent = () => {
             <Link to="/my-enrollments" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
               My Enrollments
             </Link>
+
+            {isAdmin && (
+              <Link to="/admin/audit-logs" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2">
+                Audit Logs
+              </Link>
+            )}
 
             {(canCreateCommunity || canCreateCourse) && (
               <>
@@ -178,6 +185,12 @@ const NavbarComponent = () => {
                   <Users className="mr-2 h-4 w-4" />
                   My Enrollments
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => navigate('/admin/audit-logs')}>
+                    <Users className="mr-2 h-4 w-4" />
+                    Audit Logs
+                  </DropdownMenuItem>
+                )}
                 {(canCreateCommunity || canCreateCourse) && (
                   <>
                     <DropdownMenuItem onClick={() => navigate('/my-communities')}>
@@ -247,6 +260,9 @@ const NavbarComponent = () => {
                       <Link to="/my-communities" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>My Communities</Link>
                     </>
                   )}
+                      {isAdmin && (
+                        <Link to="/admin/audit-logs" className="text-base font-medium text-foreground/80 hover:text-foreground transition-colors py-2" onClick={() => setOpen(false)}>Audit Logs</Link>
+                      )}
                   <Button variant="outline" className="justify-start" onClick={() => { handleLogout(); setOpen(false); }}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout

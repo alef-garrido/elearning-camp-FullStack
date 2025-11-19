@@ -23,6 +23,7 @@ const communities = require('./routes/communities');
 const courses = require('./routes/courses');
 const auth = require('./routes/auth');
 const users = require('./routes/users');
+const auditLogs = require('./routes/auditLogs');
 const reviews = require('./routes/reviews');
 const enrollments = require('./routes/enrollments');
 const uploads = require('./routes/uploads');
@@ -151,6 +152,7 @@ app.use('/docs', express.static(path.join(__dirname, 'public')));
 // Mount routers - order matters for nested routes
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/users', users);
+app.use('/api/v1/audit-logs', auditLogs);
 app.use('/api/v1/communities', communities); // This should come before courses and reviews as they are nested
 app.use('/api/v1/courses', courses);
 app.use('/api/v1/reviews', reviews);

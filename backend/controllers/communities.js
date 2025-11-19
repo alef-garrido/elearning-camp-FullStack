@@ -5,6 +5,7 @@ const geocoder = require('../utils/geocoder');
 const Community = require('../models/Community');
 const Enrollment = require('../models/Enrollment');
 const { enhanceCommunityWithPhotoUrl } = require('../utils/supabasePhotoUrl');
+const AuditLog = require('../models/AuditLog');
 
 
 // @desc      Get all communities
@@ -195,14 +196,39 @@ exports.updateCommunity = asyncHandler(async (req, res, next) => {
       return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
     }
 
-    // Make sure user is community owner
+    // Make sure user is community owner (or site admin)
     if(community.user.toString() !== req.user.id && req.user.role !== 'admin') {
-      return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this community`, 401));
+        return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this community`, 401));
+    }
+
+    // If a site admin is changing the owner (`user` field), record an audit log
+    const isSiteAdmin = req.user.role === 'admin';
+    if (isSiteAdmin && req.body && Object.prototype.hasOwnProperty.call(req.body, 'user')) {
+      try {
+        const previousOwner = community.user;
+        const newOwner = req.body.user;
+        if (String(previousOwner) !== String(newOwner)) {
+          await AuditLog.create({
+            action: 'transfer_ownership',
+            resourceType: 'Community',
+            resourceId: community._id,
+            performedBy: req.user.id,
+            previousValue: { user: previousOwner },
+            newValue: { user: newOwner },
+            metadata: {
+              note: 'Admin initiated ownership transfer via admin UI'
+            }
+          });
+        }
+      } catch (auditErr) {
+        // Do not block main flow if audit logging fails — log to console for diagnostics
+        console.error('Failed to write audit log for community ownership transfer:', auditErr);
+      }
     }
 
     community = await Community.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
+        new: true,
+        runValidators: true
     });
     
     res.status(200).json({ success: true, data: community });

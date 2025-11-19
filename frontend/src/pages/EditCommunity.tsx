@@ -7,8 +7,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Community } from '@/types/api';
+import { Community, User } from '@/types/api';
 import { useAuth } from '@/hooks/use-auth';
+import UserSearch from '@/components/UserSearch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const EditCommunity = () => {
   const { id } = useParams();
@@ -103,6 +114,32 @@ const EditCommunity = () => {
     }
   };
 
+  // Admin-only: transfer ownership
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferring, setTransferring] = useState(false);
+  const [pendingNewOwner, setPendingNewOwner] = useState<User | null>(null);
+  const handleSelectNewOwner = (u: User) => {
+    // Open confirmation dialog by setting pending new owner
+    setPendingNewOwner(u);
+  };
+
+  const handleConfirmTransfer = async () => {
+    if (!id || !pendingNewOwner) return;
+    setTransferring(true);
+    try {
+      await ApiClient.updateCommunity(id, { user: pendingNewOwner._id } as any);
+      toast.success('Ownership transferred');
+      const res = await ApiClient.getCommunity(id);
+      setCommunity(res.data);
+      setTransferOpen(false);
+      setPendingNewOwner(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to transfer ownership');
+    } finally {
+      setTransferring(false);
+    }
+  };
+
   if (loading) return <div className="min-h-screen bg-background"><div className="container py-8 px-4"><div className="h-64 rounded-xl bg-muted animate-pulse mb-6" /></div></div>;
 
   if (!community) return <div className="min-h-screen bg-background"><div className="container py-12 px-4 text-center"><p className="text-muted-foreground">Community not found</p></div></div>;
@@ -166,7 +203,41 @@ const EditCommunity = () => {
               <div className="flex gap-2">
                 <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
                 <Button variant="outline" onClick={() => navigate('/my-communities')}>Cancel</Button>
+                {isAdmin && (
+                  <Button variant="ghost" onClick={() => setTransferOpen(!transferOpen)}>
+                    {transferOpen ? 'Close transfer' : 'Transfer ownership'}
+                  </Button>
+                )}
               </div>
+              {transferOpen && isAdmin && (
+                <div className="mt-4">
+                  <h3 className="font-medium mb-2">Transfer Ownership (admin)</h3>
+                  <UserSearch onSelect={handleSelectNewOwner} excludeUserId={typeof community?.user === 'object' ? (community?.user as any)?._id : community?.user} />
+                  {transferring && <div className="text-sm text-muted-foreground mt-2">Transferring...</div>}
+
+                  {/* Confirmation dialog shown when an admin selects a new owner */}
+                  <AlertDialog open={!!pendingNewOwner} onOpenChange={(open) => { if (!open) setPendingNewOwner(null); }}>
+                    <AlertDialogTrigger asChild>
+                      {/* Hidden trigger - dialog controlled by `pendingNewOwner` state */}
+                      <div />
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Ownership Transfer</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to transfer ownership of <strong>{community?.name}</strong> to <strong>{pendingNewOwner?.name} ({pendingNewOwner?.email})</strong>? This action will change the community owner.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="flex justify-end gap-3">
+                        <AlertDialogCancel onClick={() => setPendingNewOwner(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmTransfer} className="bg-destructive hover:bg-destructive/90">
+                          {transferring ? 'Transferring...' : 'Confirm Transfer'}
+                        </AlertDialogAction>
+                      </div>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>

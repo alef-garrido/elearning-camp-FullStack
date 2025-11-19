@@ -473,6 +473,18 @@ export class ApiClient {
     return this.request(`/users?${query}`);
   }
 
+  static async getAuditLogs(params?: { action?: string; resourceType?: string; performedBy?: string; page?: number; limit?: number; }) {
+    const query = new URLSearchParams();
+    if (params) {
+      if (params.action) query.set('action', params.action);
+      if (params.resourceType) query.set('resourceType', params.resourceType);
+      if (params.performedBy) query.set('performedBy', params.performedBy);
+      if (params.page) query.set('page', params.page.toString());
+      if (params.limit) query.set('limit', params.limit.toString());
+    }
+    return this.request(`/audit-logs?${query}`);
+  }
+
   static async createUser(input: { name: string; email: string; password: string; role: string; }): Promise<ApiResponse<User>> {
     return this.request('/users', {
       method: 'POST',
