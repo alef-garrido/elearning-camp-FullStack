@@ -197,12 +197,12 @@ exports.updateCommunity = asyncHandler(async (req, res, next) => {
 
     // Make sure user is community owner
     if(community.user.toString() !== req.user.id && req.user.role !== 'admin') {
-        return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this community`, 401));
+      return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this community`, 401));
     }
 
     community = await Community.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-        runValidators: true
+      new: true,
+      runValidators: true
     });
     
     res.status(200).json({ success: true, data: community });

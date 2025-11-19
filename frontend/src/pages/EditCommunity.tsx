@@ -20,14 +20,33 @@ const EditCommunity = () => {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [website, setWebsite] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [topicsInput, setTopicsInput] = useState('');
+  const [hasMentorship, setHasMentorship] = useState(false);
+  const [hasLiveEvents, setHasLiveEvents] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+  const [publishersInput, setPublishersInput] = useState('');
+  
 
   useEffect(() => {
     const load = async () => {
       try {
         const res = await ApiClient.getCommunity(id!);
-        setCommunity(res.data);
-        setName(res.data.name);
-        setDescription(res.data.description);
+          setCommunity(res.data);
+          setName(res.data.name);
+          setDescription(res.data.description);
+          setWebsite(res.data.website || '');
+          setPhone(res.data.phone || '');
+          setEmail(res.data.email || '');
+          setAddress(res.data.address || '');
+          setTopicsInput(Array.isArray(res.data.topics) ? res.data.topics.join(', ') : (res.data.topics || ''));
+          setHasMentorship(!!res.data.hasMentorship);
+          setHasLiveEvents(!!res.data.hasLiveEvents);
+          setIsPaid(!!res.data.isPaid);
+          setPublishersInput('');
       } catch (err: any) {
         toast.error(err.message || 'Failed to load community');
         navigate('/my-communities');
@@ -40,7 +59,8 @@ const EditCommunity = () => {
 
   useEffect(() => {
     if (!community || !user) return;
-    const isOwner = community.user === user._id || (typeof community.user === 'object' && (community.user as any)._id === user._id);
+    const communityUserId = typeof community.user === 'object' ? (community.user as any)._id : community.user;
+    const isOwner = communityUserId === user._id;
     if (!isOwner && !isAdmin) {
       toast.error('Not authorized to edit this community');
       navigate('/my-communities');
@@ -51,7 +71,28 @@ const EditCommunity = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { name, description } as any;
+      const payload: any = {
+        name,
+        description,
+        website: website || undefined,
+        phone: phone || undefined,
+        email: email || undefined,
+        address: address || undefined,
+        hasMentorship,
+        hasLiveEvents,
+        isPaid
+      };
+
+      if (topicsInput && topicsInput.trim().length > 0) {
+        payload.topics = topicsInput.split(',').map((t) => t.trim()).filter(Boolean);
+      }
+
+      if (publishersInput && publishersInput.trim().length > 0) {
+        // The backend stores the community owner as `user`. We don't persist per-community publishers/admins.
+        // If you need to make someone the owner, do that manually or via a dedicated admin endpoint.
+        // Here we ignore publishersInput on update to avoid changing ownership patterns.
+      }
+
       const res = await ApiClient.updateCommunity(id!, payload);
       toast.success('Community updated');
       navigate(`/communities/${res.data._id}`);
@@ -80,6 +121,47 @@ const EditCommunity = () => {
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="h-32" />
+              </div>
+              <div>
+                <Label htmlFor="website">Website</Label>
+                <Input id="website" value={website} onChange={(e) => setWebsite(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="address">Address</Label>
+                  <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="topics">Topics (comma separated)</Label>
+                <Input id="topics" value={topicsInput} onChange={(e) => setTopicsInput(e.target.value)} />
+              </div>
+              <div className="flex gap-4 items-center">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={hasMentorship} onChange={(e) => setHasMentorship(e.target.checked)} />
+                  <span>Has Mentorship</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={hasLiveEvents} onChange={(e) => setHasLiveEvents(e.target.checked)} />
+                  <span>Has Live Events</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} />
+                  <span>Is Paid</span>
+                </label>
+              </div>
+              <div>
+                <Label htmlFor="publishers">Publishers (note)</Label>
+                <Input id="publishers" value={publishersInput} onChange={(e) => setPublishersInput(e.target.value)} disabled />
+                <p className="text-sm text-muted-foreground">The community owner (publisher) is stored as the community `user`. Per-community publisher/admin lists are not used.</p>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
