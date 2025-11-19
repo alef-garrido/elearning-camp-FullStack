@@ -34,6 +34,7 @@ const Communities = () => {
   const [maxCost, setMaxCost] = useState<number | undefined>(undefined);
   const [zipcode, setZipcode] = useState<string>('');
   const [distanceKm, setDistanceKm] = useState<number | undefined>(undefined);
+  const [availableTopics, setAvailableTopics] = useState<{ _id: string; name: string }[]>([]);
 
   // Debounce search input to avoid excessive requests
   useEffect(() => {
@@ -50,6 +51,18 @@ const Communities = () => {
     loadCommunities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, selectedTopics, sortBy, minRating, maxCost, zipcode, distanceKm]);
+
+  useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const res = await ApiClient.getTopics();
+        setAvailableTopics(res.data || []);
+      } catch (err) {
+        setAvailableTopics([]);
+      }
+    };
+    loadTopics();
+  }, []);
 
   // Load user's community enrollments once when auth changes
   const { user, isLoading: authLoading } = useAuth();
@@ -110,7 +123,13 @@ const Communities = () => {
   const filteredCommunities = communities.filter(community =>
     community.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     community.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (community.topics || []).some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+    (community.topics || []).some(t => {
+      // topic may be string id, topic name, or populated Topic object
+      if (!t) return false;
+      if (typeof t === 'string') return t.toLowerCase().includes(searchQuery.toLowerCase());
+      if (typeof t === 'object') return (t.name || String(t)).toLowerCase().includes(searchQuery.toLowerCase());
+      return false;
+    })
   );
 
   return (
@@ -158,11 +177,10 @@ const Communities = () => {
                 <SelectValue placeholder="Topic" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Topics</SelectItem>
-                <SelectItem value="programming">Programming</SelectItem>
-                <SelectItem value="design">Design</SelectItem>
-                <SelectItem value="business">Business</SelectItem>
-                <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="all">All Topics</SelectItem>
+                  {availableTopics.map((t) => (
+                    <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
+                  ))}
               </SelectContent>
             </Select>
 

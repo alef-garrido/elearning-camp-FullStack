@@ -4,6 +4,7 @@ const asyncHandler = require('../middleware/async');
 const geocoder = require('../utils/geocoder');
 const Community = require('../models/Community');
 const Enrollment = require('../models/Enrollment');
+const Topic = require('../models/Topic');
 const { enhanceCommunityWithPhotoUrl } = require('../utils/supabasePhotoUrl');
 const AuditLog = require('../models/AuditLog');
 
@@ -29,8 +30,8 @@ exports.getCommunities = asyncHandler(async (req, res, next) => {
 // @access    Public
 exports.getCommunity = asyncHandler(async (req, res, next) => {
  
-  // Include virtual enrollment count
-  const community = await Community.findById(req.params.id).populate('enrollmentCount');
+  // Include virtual enrollment count and populate topics
+  const community = await Community.findById(req.params.id).populate('enrollmentCount').populate('topics');
 
     if (!community) {
       return next(new ErrorResponse(`Community not found with id of ${req.params.id}`, 404));
@@ -168,6 +169,20 @@ exports.createCommunity = asyncHandler(async (req, res, next) => {
     // Add user to req.body
     req.body.user = req.user.id;
 
+    // Resolve topic names/ids into ObjectIds
+    if (req.body.topics && Array.isArray(req.body.topics)) {
+      req.body.topics = await Promise.all(req.body.topics.map(async (t) => {
+        // If already an ObjectId-like string, return as-is
+        if (typeof t === 'string' && /^[0-9a-fA-F]{24}$/.test(t)) return t;
+        // Otherwise treat as a name: find or create Topic
+        const name = String(t).trim();
+        if (!name) return null;
+        let topic = await Topic.findOne({ name });
+        if (!topic) topic = await Topic.create({ name });
+        return topic._id;
+      })).then(arr => arr.filter(Boolean));
+    }
+
     // Check for published community
     const publishedCommunity = await Community.findOne({ user: req.user.id });
 
@@ -224,6 +239,18 @@ exports.updateCommunity = asyncHandler(async (req, res, next) => {
         // Do not block main flow if audit logging fails — log to console for diagnostics
         console.error('Failed to write audit log for community ownership transfer:', auditErr);
       }
+    }
+
+    // Resolve topics if provided on update
+    if (req.body.topics && Array.isArray(req.body.topics)) {
+      req.body.topics = await Promise.all(req.body.topics.map(async (t) => {
+        if (typeof t === 'string' && /^[0-9a-fA-F]{24}$/.test(t)) return t;
+        const name = String(t).trim();
+        if (!name) return null;
+        let topic = await Topic.findOne({ name });
+        if (!topic) topic = await Topic.create({ name });
+        return topic._id;
+      })).then(arr => arr.filter(Boolean));
     }
 
     community = await Community.findByIdAndUpdate(req.params.id, req.body, {

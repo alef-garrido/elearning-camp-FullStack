@@ -53,7 +53,7 @@ const EditCommunity = () => {
           setPhone(res.data.phone || '');
           setEmail(res.data.email || '');
           setAddress(res.data.address || '');
-          setTopicsInput(Array.isArray(res.data.topics) ? res.data.topics.join(', ') : (res.data.topics || ''));
+          setTopicsInput(Array.isArray(res.data.topics) ? res.data.topics.map((t: any) => typeof t === 'string' ? t : (t.name || '')).join(', ') : (res.data.topics || ''));
           setHasMentorship(!!res.data.hasMentorship);
           setHasLiveEvents(!!res.data.hasLiveEvents);
           setIsPaid(!!res.data.isPaid);

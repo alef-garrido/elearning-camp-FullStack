@@ -4,6 +4,7 @@ import {
   Course,
   Review,
   User,
+  Topic,
   Post,
   AuthResponse,
   LoginInput,
@@ -504,4 +505,42 @@ export class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Topics (Admin-managed)
+  static async getTopics(): Promise<ApiResponse<Topic[]>> {
+    return this.request('/topics');
+  }
+
+  static async createTopic(input: { name: string }): Promise<ApiResponse<Topic>> {
+    return this.request('/topics', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async updateTopic(id: string, input: { name?: string }): Promise<ApiResponse<Topic>> {
+    return this.request(`/topics/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  static async deleteTopic(id: string): Promise<ApiResponse<void>> {
+    return this.request(`/topics/${id}`, {
+      method: 'DELETE',
+    });
+  }
+}
+
+export async function replaceTopicReferences(oldId: string, replaceWithId?: string | null) {
+  const body = replaceWithId ? { replaceWithId } : {};
+  const res = await fetch(`/api/v1/topics/${oldId}/replace`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // include auth header if your app uses bearer tokens - adjust accordingly
+    },
+    body: JSON.stringify(body),
+  });
+  return res.json();
 }

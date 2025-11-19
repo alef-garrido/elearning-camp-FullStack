@@ -18,22 +18,8 @@ import { ApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
 
-const TOPICS = [
-  "Web Development",
-  "Career Growth",
-  "System Design",
-  "Tech Interviews",
-  "Career Advancement",
-  "Leadership",
-  "HTML/CSS",
-  "JavaScript Basics",
-  "Git & GitHub",
-  "Learning How to Learn",
-  "Creative Coding",
-  "Generative Art",
-  "UI Animation",
-  "Portfolio Building"
-];
+import { Topic } from '@/types/api';
+// Topics will be loaded from the API so admins can manage them
 
 const CreateCommunity = () => {
   const navigate = useNavigate();
@@ -47,6 +33,7 @@ const CreateCommunity = () => {
   }, [canCreateCommunity, navigate]);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -54,7 +41,7 @@ const CreateCommunity = () => {
     phone: "",
     email: "",
     address: "",
-    topics: [] as string[],
+    topics: [] as string[], // store Topic._id values
     hasMentorship: false,
     hasLiveEvents: false,
     isPaid: false
@@ -86,6 +73,18 @@ const CreateCommunity = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await ApiClient.getTopics();
+        setTopics(res.data || []);
+      } catch (err) {
+        // silently ignore; CreateCommunity can still work with custom typed topics
+      }
+    };
+    load();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -175,30 +174,34 @@ const CreateCommunity = () => {
               <div className="space-y-2">
                 <Label>Topics *</Label>
                 <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {TOPICS.map((topic) => (
-                    <div key={topic} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`topic-${topic}`}
-                        checked={formData.topics.includes(topic)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            handleChange("topics", [...formData.topics, topic]);
-                          } else {
-                            handleChange(
-                              "topics",
-                              formData.topics.filter((t) => t !== topic)
-                            );
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor={`topic-${topic}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {topic}
-                      </label>
-                    </div>
-                  ))}
+                  {topics.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No topics available</div>
+                  ) : (
+                    topics.map((topic) => (
+                      <div key={topic._id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`topic-${topic._id}`}
+                          checked={formData.topics.includes(String(topic._id))}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              handleChange('topics', [...formData.topics, String(topic._id)]);
+                            } else {
+                              handleChange(
+                                'topics',
+                                formData.topics.filter((t) => t !== String(topic._id))
+                              );
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`topic-${topic._id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {topic.name}
+                        </label>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 

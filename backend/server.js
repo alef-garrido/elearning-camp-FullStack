@@ -27,6 +27,7 @@ const auditLogs = require('./routes/auditLogs');
 const reviews = require('./routes/reviews');
 const enrollments = require('./routes/enrollments');
 const uploads = require('./routes/uploads');
+const topics = require('./routes/topics');
 
 const app = express();
 
@@ -158,6 +159,7 @@ app.use('/api/v1/courses', courses);
 app.use('/api/v1/reviews', reviews);
 app.use('/api/v1/enrollments', enrollments);
 app.use('/api/v1/uploads', uploads);
+app.use('/api/v1/topics', topics);
 
 // Error handler middleware - should be last
 app.use(errorHandler);

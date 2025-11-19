@@ -97,7 +97,7 @@ const MyCommunities = () => {
                 <CardTitle className="text-xl">{community.name}</CardTitle>
                 <div className="flex gap-1">
                   {community.topics?.map((topic, index) => (
-                    <Badge key={index} variant="secondary">{topic}</Badge>
+                    <Badge key={index} variant="secondary">{typeof topic === 'string' ? topic : (topic.name || '')}</Badge>
                   ))}
                 </div>
               </div>

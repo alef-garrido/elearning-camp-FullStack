@@ -294,7 +294,7 @@ const CommunityDetail = () => {
                     <div className="flex flex-wrap gap-2">
                       {community.topics.map((topic, index) => (
                         <Badge key={index} variant="outline" className="text-sm">
-                          {topic}
+                          {typeof topic === 'string' ? topic : (topic.name || '')}
                         </Badge>
                       ))}
                     </div>

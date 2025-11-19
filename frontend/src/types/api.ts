@@ -28,7 +28,7 @@ export interface Community {
     zipcode: string;
     country: string;
   };
-  topics?: string[];
+  topics?: (string | Topic)[];
   hasMentorship?: boolean;
   hasLiveEvents?: boolean;
   isPaid?: boolean;
@@ -50,7 +50,7 @@ export interface CreateCommunityInput {
   phone?: string;
   email?: string;
   address?: string;
-  topics?: string[];
+  topics?: string[]; // array of Topic IDs
   hasMentorship?: boolean;
   hasLiveEvents?: boolean;
   isPaid?: boolean;
@@ -221,4 +221,12 @@ export interface Post {
 export interface CreatePostInput {
   content: string;
   attachments?: string[];
+}
+
+// Topic type for admin-managed topics
+export interface Topic {
+  _id: string;
+  name: string;
+  slug?: string;
+  createdAt?: string;
 }

@@ -11,6 +11,7 @@ const Course = require('./models/Course');
 const User = require('./models/User');
 const Review = require('./models/Review');
 const Enrollment = require('./models/Enrollment');
+const Topic = require('./models/Topic');
 
 // Connect to DB
 mongoose.connect(process.env.MONGO_URI);
@@ -31,11 +32,31 @@ const reviews = JSON.parse(
 const enrollments = JSON.parse(
   fs.readFileSync(`${__dirname}/_data/enrollments.json`, 'utf-8')
 );
+const topics = JSON.parse(
+  fs.readFileSync(`${__dirname}/_data/topics.json`, 'utf-8')
+);
 
 // Import into DB
 const importData = async () => {
   try {
-    await Community.create(communities);
+    // Create topics first so communities can reference their ObjectIds
+    const createdTopics = await Topic.create(topics.map((t) => ({ name: t })));
+
+    // Build a map from topic name -> _id
+    const topicMap = new Map(createdTopics.map((tt) => [tt.name, tt._id]));
+
+    // Replace topic names in communities seed with ObjectIds when possible
+    const communitiesWithIds = communities.map((c) => {
+      if (Array.isArray(c.topics)) {
+        return {
+          ...c,
+          topics: c.topics.map((name) => topicMap.get(name) || name)
+        };
+      }
+      return c;
+    });
+
+    await Community.create(communitiesWithIds);
     await Course.create(courses);
     await User.create(users);
     await Review.create(reviews);
@@ -55,6 +76,7 @@ const deleteData = async () => {
     await User.deleteMany({});
     await Review.deleteMany({});
     await Enrollment.deleteMany({});
+    await Topic.deleteMany({});
     
     // Drop indexes to clear old constraints
     await Enrollment.collection.dropIndexes().catch(() => {});

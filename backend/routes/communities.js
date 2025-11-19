@@ -57,7 +57,7 @@ router
 
 router
     .route('/')
-    .get(advancedResults(Community, 'courses'), getCommunities)
+    .get(advancedResults(Community, 'courses topics'), getCommunities)
     .post(protect, authorize('publisher', 'admin'), createCommunity);
 
 router

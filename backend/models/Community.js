@@ -57,26 +57,10 @@ const CommunitySchema = new mongoose.Schema({
         zipcode: String,
         country: String
     },
-    topics: {
-        type: [String],
-        required: true,
-        enum: [
-            "Web Development",
-            "Career Growth",
-            "System Design",
-            "Tech Interviews",
-            "Career Advancement",
-            "Leadership",
-            "HTML/CSS",
-            "JavaScript Basics",
-            "Git & GitHub",
-            "Learning How to Learn",
-            "Creative Coding",
-            "Generative Art",
-            "UI Animation",
-            "Portfolio Building"
-        ]
-    },
+    topics: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Topic'
+    }],
     averageRating: {
         type: Number,
         min: [1, 'Rating must be at least 1'],

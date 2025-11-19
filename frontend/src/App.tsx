@@ -22,6 +22,7 @@ import { Layout } from "./components/Layout";
 import MyEnrollments from "./pages/MyEnrollments";
 import MyCommunities from "./pages/MyCommunities";
 import AuditLogs from "./pages/Admin/AuditLogs";
+import AdminTopics from "./pages/Admin/Topics";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="/my-enrollments" element={<MyEnrollments />} />
                 <Route path="/communities/create" element={<CreateCommunity />} />
                 <Route path="/admin/audit-logs" element={<AuditLogs />} />
+                <Route path="/admin/topics" element={<AdminTopics />} />
                 <Route path="/courses/create" element={<CreateCourse />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
