@@ -525,3 +525,5 @@ FodyWeavers.xsd
 # Local planning and debugging notes - keep out of git history
 PHOTO_UPLOAD_FIX.md
 IMPLEMENTATION_CHECKLIST.md
+\n# Ignore backend .env file\nbackend/.env
+\n# Ignore .env file\n.env
