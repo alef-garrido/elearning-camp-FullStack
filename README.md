@@ -53,6 +53,35 @@ pnpm dev --filter backend
 - [Backend Documentation](./backend/README.md)
 - Frontend Documentation (coming soon)
 
+
+## Deployment with Docker
+
+### Build Images
+
+From the repository root, build the frontend and backend images:
+
+```bash
+docker build -f frontend/Dockerfile -t elearning-frontend:prod .
+docker build -f backend/Dockerfile -t elearning-backend:prod .
+```
+
+### Run with Docker Compose
+
+Use the included `docker-compose.yml` to run both services:
+
+```bash
+# For development profile
+docker compose --profile dev up --build
+
+# For production profile
+docker compose --profile prod up --build
+```
+
+### Environment Variables
+
+- Copy `backend/.env.example` to `backend/.env` and fill in your secrets and configuration.
+- Never commit secrets to version control. The `.env` file is gitignored.
+
 ## License
 
 MIT - See [LICENSE](./backend/LICENSE) for details.

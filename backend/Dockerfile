@@ -1,20 +1,30 @@
-# 1. Usar una imagen base oficial de Node.js (versión LTS Alpine para un tamaño reducido)
-FROM node:18-alpine
 
-# 2. Establecer el directorio de trabajo dentro del contenedor
+# 1. Use official Node.js LTS Alpine image for smaller size
+FROM node:18-alpine AS deps
+
+# 2. Install pnpm
+RUN npm install -g pnpm@latest
+
+# 3. Set workdir to /app (repo root)
 WORKDIR /app
 
-# 3. Copiar los archivos de dependencias
-COPY package.json package-lock.json ./
+# 4. Copy workspace files and backend sources
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY backend/package.json backend/ ./backend/
 
-# 4. Instalar las dependencias de producción de forma optimizada
-RUN npm ci --only=production
+# 5. Install dependencies for all workspaces
+RUN pnpm install --prod --filter ./backend...
 
-# 5. Copiar el resto del código de la aplicación
-COPY . .
+# 6. Build production image
+FROM node:18-alpine AS prod
+WORKDIR /app/backend
 
-# 6. Exponer el puerto en el que corre la aplicación
+# 7. Copy only backend files and node_modules
+COPY --from=deps /app/backend .
+COPY --from=deps /app/backend/node_modules ./node_modules
+
+# 8. Expose backend port
 EXPOSE 5000
 
-# 7. Comando para iniciar la aplicación
+# 9. Start backend server
 CMD [ "node", "server.js" ]
