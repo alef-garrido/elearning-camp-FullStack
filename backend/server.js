@@ -46,9 +46,6 @@ app.use(cors({
     credentials: true
 }));
 
-  // Ensure preflight OPTIONS requests receive CORS headers
-  app.options('*', cors());
-
 // Body parser with higher limit and strict mode
 app.use(express.json({ 
   limit: '10mb',
