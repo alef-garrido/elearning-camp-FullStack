@@ -34,30 +34,17 @@ const topics = require('./routes/topics');
 const app = express();
 
 
-// Configure CORS - Simple configuration for development
-app.use((req, res, next) => {
-  const allowedOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'];
-  const origin = req.headers.origin;
-  
-  // Allow specific origins in development
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-
-  // Set Vary header to avoid caching issues
-  res.setHeader('Vary', 'Origin');
-  
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-    return res.sendStatus(204);
-  }
-  next();
-});
+// Enable CORS
+app.use(cors({
+    origin: [
+        'http://localhost:3000', 
+        'http://127.0.0.1:3000', 
+        'http://localhost:5173', 
+        'http://127.0.0.1:5173',
+        'https://elearning-camp-full-stack-frontend.vercel.app'
+    ],
+    credentials: true
+}));
 
 // Body parser with higher limit and strict mode
 app.use(express.json({ 
