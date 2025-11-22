@@ -4,19 +4,25 @@ WORKDIR /app
 # Enable pnpm
 RUN corepack enable
 
-# Copy workspace dependency definitions
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-# Create frontend directory and copy its package.json
-RUN mkdir -p frontend
+# Copy monorepo workspace files to root
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+
+# Create directories for all packages
+RUN mkdir -p backend frontend
+
+# Copy package.json files for all packages
+COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 
-# Install only frontend dependencies
 ENV NODE_ENV=development
-RUN pnpm install --filter frontend --dev --frozen-lockfile
 
-# Copy frontend source code
-# In dev mode, this will be overwritten by the volume mount
-COPY ./frontend .
+# Install all dependencies (this will install frontend devDependencies like vite)
+RUN pnpm install --frozen-lockfile
 
+# Copy frontend source code to frontend subdirectory
+# In dev mode, this will be overwritten by the volume mount at ./frontend:/app/frontend
+COPY frontend ./frontend
+
+WORKDIR /app/frontend
 EXPOSE 5173
 CMD ["pnpm", "dev", "--", "--host", "0.0.0.0"]

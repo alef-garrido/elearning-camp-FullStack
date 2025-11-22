@@ -4,18 +4,25 @@ WORKDIR /app
 # Enable pnpm
 RUN corepack enable
 
-# Copy workspace dependency definitions
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-# Create backend directory and copy its package.json
-RUN mkdir -p backend
+# Copy monorepo workspace files to root
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+
+# Create directories for all packages
+RUN mkdir -p backend frontend
+
+# Copy package.json files for all packages
 COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
 
-# Install only backend dependencies
-RUN pnpm install --filter backend --prod --frozen-lockfile
+ENV NODE_ENV=development
 
-# Copy backend source code
-# In dev mode, this will be overwritten by the volume mount
-COPY ./backend .
+# Install all dependencies
+RUN pnpm install --frozen-lockfile
 
+# Copy backend source code to backend subdirectory
+# In dev mode, this will be overwritten by the volume mount at ./backend:/app/backend
+COPY backend ./backend
+
+WORKDIR /app/backend
 EXPOSE 5000
-CMD ["pnpm", "run", "dev"]
+CMD ["pnpm", "dev"]
