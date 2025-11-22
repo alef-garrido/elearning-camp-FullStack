@@ -12,8 +12,10 @@ const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
-// Load env vars
-dotenv.config({ path: './config/config.env' });
+// Load env vars from file only when not running in production
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: './config/config.env' });
+}
 
 // Connect to database
 connectDB();
