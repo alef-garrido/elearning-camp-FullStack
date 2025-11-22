@@ -4,13 +4,18 @@ WORKDIR /app
 # Enable pnpm
 RUN corepack enable
 
-# Copy package files and install all dependencies
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# Copy workspace dependency definitions
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Create backend directory and copy its package.json
+RUN mkdir -p backend
+COPY backend/package.json ./backend/
 
-# Copy the rest of the app for when the container is built
+# Install only backend dependencies
+RUN pnpm install --filter backend --prod --frozen-lockfile
+
+# Copy backend source code
 # In dev mode, this will be overwritten by the volume mount
-COPY . .
+COPY ./backend .
 
 EXPOSE 5000
 CMD ["pnpm", "run", "dev"]

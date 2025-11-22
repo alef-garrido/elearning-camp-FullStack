@@ -19,9 +19,11 @@ RUN pnpm install --prod --filter ./backend...
 FROM node:18-alpine AS prod
 WORKDIR /app/backend
 
-# 7. Copy only backend files and node_modules
-COPY --from=deps /app/backend .
-COPY --from=deps /app/backend/node_modules ./node_modules
+
+
+
+# 7. Copy the entire monorepo (repo root) from build stage
+COPY --from=deps /app /app
 
 # 8. Expose backend port
 EXPOSE 5000

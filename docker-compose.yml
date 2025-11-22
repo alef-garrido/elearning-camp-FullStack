@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -9,9 +7,6 @@ services:
       - backend/.env
     ports:
       - "5000:5000"
-    profiles:
-      - dev
-      - prod
     restart: unless-stopped
 
   frontend:
@@ -20,11 +15,4 @@ services:
       dockerfile: frontend/Dockerfile
     ports:
       - "3000:80"
-    profiles:
-      - dev
-      - prod
     restart: unless-stopped
-
-# Usage:
-#   docker compose --profile dev up --build
-#   docker compose --profile prod up --build

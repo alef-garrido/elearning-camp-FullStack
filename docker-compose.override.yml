@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    volumes:
+      - ./backend:/app
+    # The default command is already pnpm run dev from the Dockerfile.dev
+    # command: pnpm run dev
+  
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    # The default command is already pnpm run dev from the Dockerfile.dev
+    # command: pnpm run dev
