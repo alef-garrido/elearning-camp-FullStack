@@ -46,6 +46,9 @@ app.use(cors({
     credentials: true
 }));
 
+  // Ensure preflight OPTIONS requests receive CORS headers
+  app.options('*', cors());
+
 // Body parser with higher limit and strict mode
 app.use(express.json({ 
   limit: '10mb',
@@ -140,7 +143,11 @@ app.use(hpp());
 app.use('/docs', express.static(path.join(__dirname, 'public')));
 
 // Mount routers - order matters for nested routes
-app.use('/api/v1/auth', auth);
+// Expose auth routes at both `/api/v1/auth` and `/auth` so deployed
+// frontends that were built with a slightly different base path still
+// reach the auth endpoints. This avoids CORS/preflight failures when
+// the frontend requests `/auth/*` directly.
+app.use(['/api/v1/auth', '/auth'], auth);
 app.use('/api/v1/users', users);
 app.use('/api/v1/audit-logs', auditLogs);
 app.use('/api/v1/communities', communities); // This should come before courses and reviews as they are nested
