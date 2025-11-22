@@ -40,21 +40,35 @@ const allowedOrigins = [
     'http://127.0.0.1:3000', 
     'http://localhost:5173', 
     'http://127.0.0.1:5173',
-    'https://elearning-camp-full-stack-frontend.vercel.app'
+    'https://elearning-camp-full-stack-frontend.vercel.app',
+    // Regex to allow Vercel production and preview URLs
+    /^https:\/\/elearning-camp-full-stack-frontend(-[a-zA-Z0-9]+)?\.vercel\.app$/
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
         // allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
+
+        const isAllowed = allowedOrigins.some(allowedOrigin => {
+            if (typeof allowedOrigin === 'string') {
+                return allowedOrigin === origin;
+            } else if (allowedOrigin instanceof RegExp) {
+                return allowedOrigin.test(origin);
+            }
+            return false;
+        });
+
+        if (isAllowed) {
+            return callback(null, true);
+        } else {
             const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
             return callback(new Error(msg), false);
         }
-        return callback(null, true);
     },
     credentials: true
 }));
+
 
 // Body parser with higher limit and strict mode
 app.use(express.json({ 
