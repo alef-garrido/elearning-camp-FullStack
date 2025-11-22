@@ -21,7 +21,7 @@ import {
   Lesson,
 } from '@/types/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/v1';
 
 // Throttle authStateChange dispatch to avoid event storms when many requests
 // return 401 in quick succession (for example during app startup). This
