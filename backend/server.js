@@ -109,7 +109,7 @@ if (process.env.NODE_ENV === 'development') {
         },
       },
       crossOriginEmbedderPolicy: false,
-      crossOriginResourcePolicy: { policy: "cross-origin" }
+      crossOriginResourcePolicy: false // Disabled to prevent conflict with CORS
     })
   );
 }
